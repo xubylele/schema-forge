@@ -1,6 +1,17 @@
 import { Command } from 'commander';
-import { ensureDir, fileExists, writeTextFile, writeJsonFile } from '../core/fs';
-import { getProjectRoot, getSchemaForgeDir, getSchemaFilePath, getConfigPath, getStatePath } from '../core/paths';
+import {
+  ensureDir,
+  fileExists,
+  writeJsonFile,
+  writeTextFile
+} from '../core/fs';
+import {
+  getConfigPath,
+  getProjectRoot,
+  getSchemaFilePath,
+  getSchemaForgeDir,
+  getStatePath
+} from '../core/paths';
 
 export async function runInit(): Promise<void> {
   const root = getProjectRoot();

@@ -1,4 +1,4 @@
-import { Schema, SchemaTable, SchemaField, ValidationResult, ValidationError } from './types';
+import { Schema, SchemaField, SchemaTable, ValidationError, ValidationResult } from '../types/types';
 
 /**
  * Schema validator for SchemaForge

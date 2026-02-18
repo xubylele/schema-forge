@@ -1,6 +1,6 @@
-import { ensureDir, fileExists, readJsonFile, writeJsonFile } from './fs';
-import { SchemaForgeConfig } from './types';
 import path from 'path';
+import { SchemaForgeConfig } from '../types/types';
+import { ensureDir, fileExists, readJsonFile, writeJsonFile } from './fs';
 
 /**
  * State manager for SchemaForge configuration and state

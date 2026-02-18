@@ -1,5 +1,5 @@
-import { readJsonFile, findFiles } from './fs';
-import { Schema, SchemaTable } from './types';
+import { Schema, SchemaTable } from '../types/types';
+import { findFiles, readJsonFile } from './fs';
 
 /**
  * Schema parser for SchemaForge

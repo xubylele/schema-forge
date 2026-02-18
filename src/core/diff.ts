@@ -4,7 +4,7 @@ import {
   SchemaField,
   SchemaTable,
   TableDiff
-} from './types';
+} from '../types/types';
 
 /**
  * Schema diff calculator for SchemaForge

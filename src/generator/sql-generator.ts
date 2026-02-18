@@ -1,13 +1,13 @@
 import {
+  DatabaseType,
+  FieldDiff,
   Schema,
-  SchemaTable,
+  SchemaDiff,
   SchemaField,
   SchemaIndex,
-  DatabaseType,
-  SchemaDiff,
+  SchemaTable,
   TableDiff,
-  FieldDiff,
-} from '../core/types';
+} from '../types/types';
 
 /**
  * SQL generator for SchemaForge
