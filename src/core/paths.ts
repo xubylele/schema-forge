@@ -1,99 +1,45 @@
-import * as path from 'path';
+import path from 'path';
 
 /**
- * Path utility functions for SchemaForge
+ * Get the project root directory
+ * For MVP, this is just the current working directory
  */
-
-export class PathManager {
-  private baseDir: string;
-
-  constructor(baseDir: string = process.cwd()) {
-    this.baseDir = baseDir;
-  }
-
-  /**
-   * Resolve a path relative to the base directory
-   */
-  resolve(...paths: string[]): string {
-    return path.resolve(this.baseDir, ...paths);
-  }
-
-  /**
-   * Get the schema directory path
-   */
-  getSchemaDir(schemaDir: string = 'schemas'): string {
-    return this.resolve(schemaDir);
-  }
-
-  /**
-   * Get the output directory path
-   */
-  getOutputDir(outputDir: string = 'output'): string {
-    return this.resolve(outputDir);
-  }
-
-  /**
-   * Get the migration directory path
-   */
-  getMigrationDir(migrationDir: string = 'migrations'): string {
-    return this.resolve(migrationDir);
-  }
-
-  /**
-   * Get the config file path
-   */
-  getConfigPath(configFile: string = 'schemaforge.config.json'): string {
-    return this.resolve(configFile);
-  }
-
-  /**
-   * Normalize a path
-   */
-  normalize(filePath: string): string {
-    return path.normalize(filePath);
-  }
-
-  /**
-   * Get the relative path from base directory
-   */
-  relative(filePath: string): string {
-    return path.relative(this.baseDir, filePath);
-  }
-
-  /**
-   * Check if path is absolute
-   */
-  isAbsolute(filePath: string): boolean {
-    return path.isAbsolute(filePath);
-  }
-
-  /**
-   * Get directory name
-   */
-  dirname(filePath: string): string {
-    return path.dirname(filePath);
-  }
-
-  /**
-   * Get base name
-   */
-  basename(filePath: string, ext?: string): string {
-    return path.basename(filePath, ext);
-  }
-
-  /**
-   * Get file extension
-   */
-  extname(filePath: string): string {
-    return path.extname(filePath);
-  }
-
-  /**
-   * Join paths
-   */
-  join(...paths: string[]): string {
-    return path.join(...paths);
-  }
+export function getProjectRoot(cwd: string = process.cwd()): string {
+  return cwd;
 }
 
-export const defaultPathManager = new PathManager();
+/**
+ * Get the SchemaForge directory path
+ */
+export function getSchemaForgeDir(root: string): string {
+  return path.join(root, 'schemaforge');
+}
+
+/**
+ * Get the schema file path
+ * Default: schemaforge/schema.sf
+ */
+export function getSchemaFilePath(root: string, config?: { schemaFile?: string }): string {
+  const schemaForgeDir = getSchemaForgeDir(root);
+  const fileName = config?.schemaFile || 'schema.sf';
+  return path.join(schemaForgeDir, fileName);
+}
+
+/**
+ * Get the config file path
+ * Default: schemaforge/config.json
+ */
+export function getConfigPath(root: string): string {
+  const schemaForgeDir = getSchemaForgeDir(root);
+  return path.join(schemaForgeDir, 'config.json');
+}
+
+/**
+ * Get the state file path
+ * Default: schemaforge/state.json
+ */
+export function getStatePath(root: string, config?: { stateFile?: string }): string {
+  const schemaForgeDir = getSchemaForgeDir(root);
+  const fileName = config?.stateFile || 'state.json';
+  return path.join(schemaForgeDir, fileName);
+}

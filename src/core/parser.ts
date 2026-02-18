@@ -1,4 +1,4 @@
-import { FileSystemManager, defaultFsManager } from './fs';
+import { readJsonFile, findFiles } from './fs';
 import { Schema, SchemaTable } from './types';
 
 /**
@@ -6,18 +6,12 @@ import { Schema, SchemaTable } from './types';
  */
 
 export class SchemaParser {
-  private fsManager: FileSystemManager;
-
-  constructor(fsManager: FileSystemManager = defaultFsManager) {
-    this.fsManager = fsManager;
-  }
-
   /**
    * Parse a schema from a JSON file
    */
   async parseSchemaFile(filePath: string): Promise<Schema> {
     try {
-      const schema = await this.fsManager.readJsonFile<Schema>(filePath);
+      const schema = await readJsonFile<Schema>(filePath, {} as Schema);
       return this.normalizeSchema(schema);
     } catch (error) {
       throw new Error(`Failed to parse schema file ${filePath}: ${error}`);
@@ -28,7 +22,7 @@ export class SchemaParser {
    * Parse multiple schema files from a directory
    */
   async parseSchemaDirectory(dirPath: string): Promise<Schema[]> {
-    const schemaFiles = await this.fsManager.findFiles(dirPath, /\.schema\.json$/);
+    const schemaFiles = await findFiles(dirPath, /\.schema\.json$/);
     const schemas: Schema[] = [];
 
     for (const file of schemaFiles) {

@@ -1,164 +1,108 @@
-import * as fsSync from 'fs';
-import * as fs from 'fs/promises';
-import * as path from 'path';
+import { promises as fs } from 'fs';
+import path from 'path';
 
 /**
- * File system utility functions for SchemaForge
+ * Ensure a directory exists, creating it if necessary
  */
+export async function ensureDir(dirPath: string): Promise<void> {
+  try {
+    await fs.mkdir(dirPath, { recursive: true });
+  } catch (error) {
+    throw new Error(`Failed to create directory ${dirPath}: ${error}`);
+  }
+}
 
-export class FileSystemManager {
-  /**
-   * Check if a file or directory exists
-   */
-  async exists(filePath: string): Promise<boolean> {
-    try {
-      await fs.access(filePath);
-      return true;
-    } catch {
-      return false;
+/**
+ * Check if a file exists
+ */
+export async function fileExists(filePath: string): Promise<boolean> {
+  try {
+    await fs.access(filePath);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Read a text file with UTF-8 encoding
+ */
+export async function readTextFile(filePath: string): Promise<string> {
+  try {
+    return await fs.readFile(filePath, 'utf-8');
+  } catch (error) {
+    throw new Error(`Failed to read file ${filePath}: ${error}`);
+  }
+}
+
+/**
+ * Write a text file with UTF-8 encoding
+ */
+export async function writeTextFile(filePath: string, content: string): Promise<void> {
+  try {
+    // Ensure parent directory exists
+    const dir = path.dirname(filePath);
+    await ensureDir(dir);
+
+    await fs.writeFile(filePath, content, 'utf-8');
+  } catch (error) {
+    throw new Error(`Failed to write file ${filePath}: ${error}`);
+  }
+}
+
+/**
+ * Read a JSON file with UTF-8 encoding
+ * Returns fallback value if file doesn't exist
+ */
+export async function readJsonFile<T>(filePath: string, fallback: T): Promise<T> {
+  try {
+    const exists = await fileExists(filePath);
+    if (!exists) {
+      return fallback;
     }
+
+    const content = await readTextFile(filePath);
+    return JSON.parse(content) as T;
+  } catch (error) {
+    throw new Error(`Failed to read JSON file ${filePath}: ${error}`);
   }
+}
 
-  /**
-   * Check if path is a directory
-   */
-  async isDirectory(filePath: string): Promise<boolean> {
-    try {
-      const stats = await fs.stat(filePath);
-      return stats.isDirectory();
-    } catch {
-      return false;
-    }
+/**
+ * Write a JSON file with UTF-8 encoding
+ * Pretty-prints with 2-space indentation
+ */
+export async function writeJsonFile(filePath: string, data: any): Promise<void> {
+  try {
+    const content = JSON.stringify(data, null, 2);
+    await writeTextFile(filePath, content);
+  } catch (error) {
+    throw new Error(`Failed to write JSON file ${filePath}: ${error}`);
   }
+}
 
-  /**
-   * Check if path is a file
-   */
-  async isFile(filePath: string): Promise<boolean> {
-    try {
-      const stats = await fs.stat(filePath);
-      return stats.isFile();
-    } catch {
-      return false;
-    }
-  }
+/**
+ * Find files matching a pattern recursively
+ */
+export async function findFiles(dirPath: string, pattern: RegExp): Promise<string[]> {
+  const results: string[] = [];
 
-  /**
-   * Read file content
-   */
-  async readFile(filePath: string, encoding: BufferEncoding = 'utf-8'): Promise<string> {
-    return await fs.readFile(filePath, encoding);
-  }
-
-  /**
-   * Write file content
-   */
-  async writeFile(filePath: string, content: string, encoding: BufferEncoding = 'utf-8'): Promise<void> {
-    await fs.writeFile(filePath, content, encoding);
-  }
-
-  /**
-   * Append to file
-   */
-  async appendFile(filePath: string, content: string, encoding: BufferEncoding = 'utf-8'): Promise<void> {
-    await fs.appendFile(filePath, content, encoding);
-  }
-
-  /**
-   * Delete file
-   */
-  async deleteFile(filePath: string): Promise<void> {
-    await fs.unlink(filePath);
-  }
-
-  /**
-   * Create directory (recursive by default)
-   */
-  async createDirectory(dirPath: string, recursive: boolean = true): Promise<void> {
-    await fs.mkdir(dirPath, { recursive });
-  }
-
-  /**
-   * Read directory contents
-   */
-  async readDirectory(dirPath: string): Promise<string[]> {
-    return await fs.readdir(dirPath);
-  }
-
-  /**
-   * Read directory with file types
-   */
-  async readDirectoryWithTypes(dirPath: string): Promise<fsSync.Dirent[]> {
-    return await fs.readdir(dirPath, { withFileTypes: true });
-  }
-
-  /**
-   * Copy file
-   */
-  async copyFile(source: string, destination: string): Promise<void> {
-    await fs.copyFile(source, destination);
-  }
-
-  /**
-   * Move/rename file
-   */
-  async moveFile(oldPath: string, newPath: string): Promise<void> {
-    await fs.rename(oldPath, newPath);
-  }
-
-  /**
-   * Get file stats
-   */
-  async getStats(filePath: string): Promise<fsSync.Stats> {
-    return await fs.stat(filePath);
-  }
-
-  /**
-   * Read JSON file
-   */
-  async readJsonFile<T = any>(filePath: string): Promise<T> {
-    const content = await this.readFile(filePath);
-    return JSON.parse(content);
-  }
-
-  /**
-   * Write JSON file
-   */
-  async writeJsonFile(filePath: string, data: any, pretty: boolean = true): Promise<void> {
-    const content = pretty ? JSON.stringify(data, null, 2) : JSON.stringify(data);
-    await this.writeFile(filePath, content);
-  }
-
-  /**
-   * Find files matching pattern recursively
-   */
-  async findFiles(dirPath: string, pattern: RegExp): Promise<string[]> {
-    const results: string[] = [];
-
-    const items = await this.readDirectoryWithTypes(dirPath);
+  try {
+    const items = await fs.readdir(dirPath, { withFileTypes: true });
 
     for (const item of items) {
       const fullPath = path.join(dirPath, item.name);
 
       if (item.isDirectory()) {
-        const subResults = await this.findFiles(fullPath, pattern);
+        const subResults = await findFiles(fullPath, pattern);
         results.push(...subResults);
       } else if (item.isFile() && pattern.test(item.name)) {
         results.push(fullPath);
       }
     }
-
-    return results;
+  } catch (error) {
+    throw new Error(`Failed to find files in ${dirPath}: ${error}`);
   }
 
-  /**
-   * Ensure directory exists, create if not
-   */
-  async ensureDirectory(dirPath: string): Promise<void> {
-    if (!(await this.exists(dirPath))) {
-      await this.createDirectory(dirPath);
-    }
-  }
+  return results;
 }
-
-export const defaultFsManager = new FileSystemManager();
