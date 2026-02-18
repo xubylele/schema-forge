@@ -1,27 +1,33 @@
 {
   "name": "schema-forge",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+  "description": "CLI for schema management and SQL generation",
+  "main": "dist/cli.js",
+  "type": "commonjs",
+  "bin": {
+    "schemaforge": "dist/cli.js"
   },
-  "keywords": [],
+  "scripts": {
+    "build": "tsup src/cli.ts --format cjs --dts",
+    "dev": "ts-node src/cli.ts",
+    "test": "vitest"
+  },
+  "keywords": [
+    "cli",
+    "schema",
+    "sql",
+    "generator"
+  ],
   "author": "",
   "license": "ISC",
-  "type": "commonjs",
   "dependencies": {
     "commander": "^14.0.3"
   },
   "devDependencies": {
     "@types/node": "^25.2.3",
+    "ts-node": "^10.9.2",
     "tsup": "^8.5.1",
-    "typescript": "^5.9.3"
-  },
-  "compilerOptions": {
-    "target": "ES2020",
-    "module": "CommonJS",
-    "strict": true,
-    "outDir": "dist"
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.18"
   }
 }
