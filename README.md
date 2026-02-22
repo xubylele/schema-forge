@@ -69,7 +69,7 @@ Options:
 
 ## Project Structure
 
-```
+```cmd
 schema-forge/
 ├── src/
 │   ├── cli.ts                    # CLI entrypoint
