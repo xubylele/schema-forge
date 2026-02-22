@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { parseSchema } from './parser';
-import { DatabaseSchema } from '../types/types';
+import { parseSchema } from '../src/core/parser';
+import { DatabaseSchema } from '../src/types/types';
 
 describe('parseSchema', () => {
   it('should parse a simple table with basic columns', () => {
