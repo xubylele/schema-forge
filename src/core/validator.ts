@@ -1,4 +1,13 @@
-import { Schema, SchemaField, SchemaTable, ValidationError, ValidationResult } from '../types/types';
+import {
+  ColumnType,
+  DatabaseSchema,
+  Schema,
+  SchemaField,
+  SchemaTable,
+  Table,
+  ValidationError,
+  ValidationResult
+} from '../types/types';
 
 /**
  * Schema validator for SchemaForge
@@ -224,3 +233,115 @@ export class SchemaValidator {
 }
 
 export const defaultValidator = new SchemaValidator();
+
+// ============================================================================
+// DatabaseSchema Validation
+// ============================================================================
+
+/**
+ * Tipos de columna válidos para la base de datos
+ */
+const VALID_COLUMN_TYPES: ColumnType[] = ['uuid', 'varchar', 'text', 'int', 'boolean', 'timestamptz', 'date'];
+
+/**
+ * Valida una estructura de DatabaseSchema y lanza un Error si hay validaciones fallidas
+ * 
+ * Validaciones:
+ * - Detecta tablas duplicadas
+ * - Detecta columnas duplicadas dentro de cada tabla
+ * - Detecta múltiples primary keys en una tabla
+ * - Valida que los tipos de columna sean válidos
+ * - Valida que las foreign keys referencien tablas y columnas existentes
+ * 
+ * @param schema - La DatabaseSchema a validar
+ * @throws Error con mensaje descriptivo si hay violaciones de validación
+ */
+export function validateSchema(schema: DatabaseSchema): void {
+  validateDuplicateTables(schema);
+
+  // Validar cada tabla
+  for (const tableName in schema.tables) {
+    const table = schema.tables[tableName];
+    validateTableColumns(tableName, table, schema.tables);
+  }
+}
+
+/**
+ * Valida que no haya tablas duplicadas en el schema
+ * 
+ * @param schema - La DatabaseSchema a validar
+ * @throws Error si se detectan tablas duplicadas
+ */
+function validateDuplicateTables(schema: DatabaseSchema): void {
+  const tableNames = Object.keys(schema.tables);
+  const seen = new Set<string>();
+
+  for (const tableName of tableNames) {
+    if (seen.has(tableName)) {
+      throw new Error(`Tabla duplicada: '${tableName}'`);
+    }
+    seen.add(tableName);
+  }
+}
+
+/**
+ * Valida columnas, primary keys, tipos y foreign keys dentro de una tabla
+ * 
+ * @param tableName - Nombre de la tabla
+ * @param table - La tabla a validar
+ * @param allTables - Todas las tablas del schema (para validar foreign keys)
+ * @throws Error si se detectan violaciones
+ */
+function validateTableColumns(tableName: string, table: Table, allTables: Record<string, Table>): void {
+  // Validar columnas duplicadas
+  const columnNames = new Set<string>();
+  let primaryKeyCount = 0;
+
+  for (const column of table.columns) {
+    // Verificar columnas duplicadas
+    if (columnNames.has(column.name)) {
+      throw new Error(`Tabla '${tableName}': columna duplicada '${column.name}'`);
+    }
+    columnNames.add(column.name);
+
+    // Contar primary keys
+    if (column.primaryKey) {
+      primaryKeyCount++;
+    }
+
+    // Validar tipo de columna
+    if (!VALID_COLUMN_TYPES.includes(column.type)) {
+      throw new Error(
+        `Tabla '${tableName}', columna '${column.name}': tipo '${column.type}' no es válido. Tipos soportados: ${VALID_COLUMN_TYPES.join(', ')}`
+      );
+    }
+
+    // Validar foreign key
+    if (column.foreignKey) {
+      const fkTable = column.foreignKey.table;
+      const fkColumn = column.foreignKey.column;
+
+      // Verificar que la tabla referenciada existe
+      if (!allTables[fkTable]) {
+        throw new Error(
+          `Tabla '${tableName}', columna '${column.name}': tabla referenciada '${fkTable}' no existe`
+        );
+      }
+
+      // Verificar que la columna existe en la tabla referenciada
+      const referencedTable = allTables[fkTable];
+      const columnExists = referencedTable.columns.some(col => col.name === fkColumn);
+
+      if (!columnExists) {
+        throw new Error(
+          `Tabla '${tableName}', columna '${column.name}': tabla '${fkTable}' no tiene columna '${fkColumn}'`
+        );
+      }
+    }
+  }
+
+  // Validar múltiples primary keys
+  if (primaryKeyCount > 1) {
+    throw new Error(`Tabla '${tableName}': solo puede tener una primary key (encontradas ${primaryKeyCount})`);
+  }
+}
