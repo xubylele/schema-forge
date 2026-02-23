@@ -40,8 +40,10 @@ Follow [Semantic Versioning](https://semver.org/):
 1. The changeset file (`.changeset/<hash>.md`) will be created in your branch
 2. Commit this file along with your code changes
 3. Open a pull request with your changes
-4. Once your PR is merged to `main`, an automated PR called "Version Packages" will be created
-5. When that PR is merged, your changes will be automatically published to npm
+4. Once your PR is merged to `main`, the automated release workflow runs immediately
+5. Within 2-3 minutes, your changes are versioned, committed, tagged, and published to npm automatically
+
+**No intermediate PR or manual steps required!**
 
 ## Pull Request Workflow
 
@@ -57,17 +59,19 @@ Follow [Semantic Versioning](https://semver.org/):
 
 Once your PR is merged to `main`:
 
-1. A GitHub Action runs and detects the changeset
-2. It creates (or updates) a PR titled "Version Packages"
-3. This PR contains:
-   - Updated version in `package.json`
-   - Updated `CHANGELOG.md`
-   - All pending changesets removed
-4. When a maintainer merges the "Version Packages" PR:
-   - The package is automatically published to npm
-   - A git tag is created for the version
+1. The release workflow (`.github/workflows/release-on-main.yml`) triggers automatically
+2. It performs the following steps in sequence:
+   - Checks for anti-loop guard (skips if commit is a release commit)
+   - Detects changesets (skips if none found)
+   - Runs `npx changeset version` to bump version and update CHANGELOG
+   - Commits changes with message: `chore(release): version packages`
+   - Pushes directly to `main`
+   - Creates and pushes a git tag (e.g., `v0.2.1`)
+   - Publishes to npm with `npm publish --access public`
 
-**Note:** You don't need to do anything after your PR is merged. The versioning and publishing is fully automated.
+3. Total time: **2-3 minutes** from merge to npm publish
+
+**Note:** You don't need to do anything after your PR is merged. The versioning, tagging, and publishing are fully automated.
 
 ## Hotfixes
 

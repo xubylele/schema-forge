@@ -1,0 +1,117 @@
+name: Release on Main
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Release to npm
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build package
+        run: npm run build
+
+      - name: Check for release loop (anti-loop guard)
+        id: check_loop
+        run: |
+          COMMIT_MSG=$(git log -1 --pretty=%s)
+          echo "Last commit: $COMMIT_MSG"
+          if [[ "$COMMIT_MSG" == *"chore(release): version packages"* ]]; then
+            echo "Release commit detected. Skipping to prevent loop."
+            echo "skip=true" >> $GITHUB_OUTPUT
+          else
+            echo "skip=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Check for changesets
+        id: check_changesets
+        if: steps.check_loop.outputs.skip == 'false'
+        run: |
+          # Count changeset files (excluding README.md and config.json)
+          CHANGESET_COUNT=$(find .changeset -name "*.md" ! -name "README.md" | wc -l | xargs)
+          echo "Found $CHANGESET_COUNT changeset(s)"
+          if [ "$CHANGESET_COUNT" -eq 0 ]; then
+            echo "No changesets found. Skipping release."
+            echo "skip=true" >> $GITHUB_OUTPUT
+          else
+            echo "skip=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Version packages
+        if: steps.check_loop.outputs.skip == 'false' && steps.check_changesets.outputs.skip == 'false'
+        run: npx changeset version
+
+      - name: Configure git
+        if: steps.check_loop.outputs.skip == 'false' && steps.check_changesets.outputs.skip == 'false'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Commit and push version changes
+        id: commit_version
+        if: steps.check_loop.outputs.skip == 'false' && steps.check_changesets.outputs.skip == 'false'
+        run: |
+          if [[ -n $(git status --porcelain) ]]; then
+            git add -A
+            git commit -m "chore(release): version packages"
+            git push origin main
+            echo "committed=true" >> $GITHUB_OUTPUT
+          else
+            echo "No changes to commit. Exiting."
+            echo "committed=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Get package version
+        id: get_version
+        if: steps.commit_version.outputs.committed == 'true'
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Package version: $VERSION"
+
+      - name: Create and push tag
+        if: steps.commit_version.outputs.committed == 'true'
+        run: |
+          TAG="v${{ steps.get_version.outputs.version }}"
+          echo "Creating tag: $TAG"
+
+          # Check if tag already exists
+          if git rev-parse "$TAG" >/dev/null 2>&1; then
+            echo "Error: Tag $TAG already exists!"
+            exit 1
+          fi
+
+          git tag "$TAG"
+          git push origin "$TAG"
+
+      - name: Setup npm authentication
+        if: steps.commit_version.outputs.committed == 'true'
+        run: |
+          echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" > ~/.npmrc
+
+      - name: Publish to npm
+        if: steps.commit_version.outputs.committed == 'true'
+        run: npm publish --access public
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

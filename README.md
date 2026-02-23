@@ -296,23 +296,22 @@ A typical development workflow looks like this:
 
 ## Releasing
 
-Create a changeset:
+Schema Forge uses automated releases via GitHub Actions and [Changesets](https://github.com/changesets/changesets).
+
+When contributing changes, create a changeset:
 
 ```bash
 npx changeset
 ```
 
-Generate a new version:
+Once your PR is merged to `main`, the release workflow automatically:
 
-```bash
-npm run version-packages
-```
+- Bumps the version
+- Updates the CHANGELOG
+- Creates a git tag
+- Publishes to npm
 
-Publish manually (for now):
-
-```bash
-npm publish
-```
+No manual steps required! See [docs/releasing.md](docs/releasing.md) for detailed documentation.
 
 For detailed guidelines on contributing and automated releases, see [CONTRIBUTING.md](CONTRIBUTING.md) and [docs/releasing.md](docs/releasing.md).
 
