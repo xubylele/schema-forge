@@ -399,4 +399,40 @@ describe('parseSchema', () => {
       default: 'false'
     });
   });
+
+  it('should parse users table with pk + default + fk', () => {
+    const source = `
+      table users {
+        id uuid pk default gen_random_uuid()
+        email varchar unique
+        name varchar
+        profile_id uuid fk profiles.id
+        created_at timestamptz default now()
+      }
+    `;
+
+    const result = parseSchema(source);
+
+    expect(result.tables.users.columns).toHaveLength(5);
+
+    // id with pk and default
+    expect(result.tables.users.columns[0]).toEqual({
+      name: 'id',
+      type: 'uuid',
+      primaryKey: true,
+      default: 'gen_random_uuid()'
+    });
+
+    // profile_id with fk
+    const profileIdCol = result.tables.users.columns.find(c => c.name === 'profile_id');
+    expect(profileIdCol).toEqual({
+      name: 'profile_id',
+      type: 'uuid',
+      foreignKey: { table: 'profiles', column: 'id' }
+    });
+
+    // created_at with default
+    const createdAtCol = result.tables.users.columns.find(c => c.name === 'created_at');
+    expect(createdAtCol?.default).toBe('now()');
+  });
 });
