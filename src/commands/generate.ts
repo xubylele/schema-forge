@@ -1,11 +1,12 @@
 import { Command } from 'commander';
 import path from 'path';
-import { SchemaValidationError } from '../core/errors';
 import { diffSchemas } from '../core/diff';
-import { ensureDir, readJsonFile, readTextFile, writeTextFile, fileExists } from '../core/fs';
+import { SchemaValidationError } from '../core/errors';
+import { ensureDir, fileExists, readJsonFile, readTextFile, writeTextFile } from '../core/fs';
 import { parseSchema } from '../core/parser';
 import { getConfigPath, getProjectRoot } from '../core/paths';
 import { loadState, saveState, schemaToState } from '../core/state-manager';
+import { nowTimestamp, slugifyName } from '../core/utils';
 import { validateSchema } from '../core/validator';
 import { generateSql, Provider, SqlConfig } from '../generator/sql-generator';
 
@@ -29,26 +30,6 @@ const REQUIRED_CONFIG_FIELDS: Array<keyof GenerateConfig> = [
 
 function resolveConfigPath(root: string, targetPath: string): string {
   return path.isAbsolute(targetPath) ? targetPath : path.join(root, targetPath);
-}
-
-function formatTimestamp(date: Date): string {
-  const pad = (value: number) => String(value).padStart(2, '0');
-  return (
-    String(date.getFullYear()) +
-    pad(date.getMonth() + 1) +
-    pad(date.getDate()) +
-    pad(date.getHours()) +
-    pad(date.getMinutes()) +
-    pad(date.getSeconds())
-  );
-}
-
-function toKebabCase(value: string): string {
-  return value
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '') || 'migration';
 }
 
 export async function runGenerate(options: GenerateOptions): Promise<void> {
@@ -103,8 +84,8 @@ export async function runGenerate(options: GenerateOptions): Promise<void> {
   }
 
   const sql = generateSql(diff, provider, config.sql);
-  const timestamp = formatTimestamp(new Date());
-  const slug = toKebabCase(options.name ?? 'migration');
+  const timestamp = nowTimestamp();
+  const slug = slugifyName(options.name ?? 'migration');
   const fileName = `${timestamp}-${slug}.sql`;
 
   await ensureDir(outputDir);
