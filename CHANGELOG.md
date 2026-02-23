@@ -1,5 +1,24 @@
 # Changelog
 
+## 1.1.0
+
+### Minor Changes
+
+- fefaa52: Refactor the release process to respect protected `main` branch rules.
+
+  - Remove automated commits and pushes to `main` from release workflows.
+  - Publish to npm only from `v*` tags via GitHub Actions.
+  - Keep PR validation with the required `Test` check before merge.
+  - Update release documentation for PR-first versioning and tag-based publishing.
+
+### Patch Changes
+
+- 7257436: "@xubylele/schema-forge": patch
+
+  - Fix release workflow to use trusted publishers instead of npm token
+
+  - Update the release workflow to leverage OpenID Connect (OIDC) trusted publishers for npm authentication, removing dependency on static npm tokens for improved security and automated credential management.
+
 ## 1.0.0
 
 ### Major Changes
