@@ -19,14 +19,14 @@ describe('nowTimestamp', () => {
 
   it('should return a valid timestamp format (YYYYMMDDHHmmss)', () => {
     const result = nowTimestamp();
-    
+
     const year = parseInt(result.substring(0, 4), 10);
     const month = parseInt(result.substring(4, 6), 10);
     const day = parseInt(result.substring(6, 8), 10);
     const hours = parseInt(result.substring(8, 10), 10);
     const minutes = parseInt(result.substring(10, 12), 10);
     const seconds = parseInt(result.substring(12, 14), 10);
-    
+
     expect(year).toBeGreaterThanOrEqual(2020);
     expect(year).toBeLessThanOrEqual(2100);
     expect(month).toBeGreaterThanOrEqual(1);
