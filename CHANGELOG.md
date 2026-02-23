@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.3.1
+
+### Patch Changes
+
+- 16b8e7d: Fix: Improve schema validation and error handling
+
+  This patch includes bug fixes and improvements to the core schema validation logic to ensure better reliability and clearer error messages for users.
+
 ## 0.3.0
 
 ### Minor Changes
