@@ -1,7 +1,7 @@
 {
   "name": "schema-forge",
-  "version": "1.0.0",
-  "description": "CLI for schema management and SQL generation",
+  "version": "0.1.0",
+  "description": "Universal migration generator from schema DSL",
   "main": "dist/cli.js",
   "type": "commonjs",
   "bin": {
@@ -10,16 +10,22 @@
   "scripts": {
     "build": "tsup src/cli.ts --format cjs --dts",
     "dev": "ts-node src/cli.ts",
-    "test": "vitest"
+    "test": "vitest",
+    "prepublishOnly": "npm run build"
   },
   "keywords": [
     "cli",
     "schema",
     "sql",
-    "generator"
+    "generator",
+    "migration",
+    "database"
   ],
-  "author": "",
+  "author": "Xuby",
   "license": "ISC",
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "dependencies": {
     "commander": "^14.0.3"
   },

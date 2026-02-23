@@ -1,0 +1,23 @@
+# Source files
+src/
+
+# Tests
+test/
+tests/
+*.test.ts
+*.spec.ts
+
+# Sandbox and development
+sandbox/
+
+# Configuration
+tsconfig.json
+vitest.config.ts
+
+# Development files
+.git/
+.gitignore
+.vscode/
+
+# Build artifacts (keep dist/)
+*.tsbuildinfo

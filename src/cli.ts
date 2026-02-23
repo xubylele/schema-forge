@@ -1,9 +1,10 @@
 #!/usr/bin/env node
 
 import { Command } from 'commander';
-import { runInit } from './commands/init';
-import { runGenerate } from './commands/generate';
+import pkg from '../package.json';
 import { runDiff } from './commands/diff';
+import { runGenerate } from './commands/generate';
+import { runInit } from './commands/init';
 import { SchemaValidationError } from './core/errors';
 
 const program = new Command();
@@ -11,7 +12,7 @@ const program = new Command();
 program
   .name('schemaforge')
   .description('CLI tool for schema management and SQL generation')
-  .version('1.0.0');
+  .version(pkg.version);
 
 function handleError(error: unknown): void {
   if (error instanceof SchemaValidationError) {

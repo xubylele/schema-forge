@@ -12,11 +12,27 @@ A modern CLI tool for database schema management with a clean DSL and automatic 
 
 ## Installation
 
+Install globally via npm:
+
 ```bash
-npm install
+npm install -g schema-forge
+```
+
+Or use directly with npx (no installation required):
+
+```bash
+npx schema-forge init
 ```
 
 ## Development
+
+Clone the repository and install dependencies:
+
+```bash
+git clone <repository-url>
+cd schema-forge
+npm install
+```
 
 Build the project:
 
@@ -277,6 +293,23 @@ A typical development workflow looks like this:
 - Run `diff` before `generate` to preview what SQL will be created
 - Commit your schema files and migrations to version control
 - The state file tracks your schema evolution - don't edit it manually
+
+## Publishing to npm
+
+For maintainers, to publish a new version:
+
+```bash
+# Login to npm (one time)
+npm login
+
+# Update version in package.json
+npm version patch  # or minor, major
+
+# Build and publish
+npm publish --access public
+```
+
+The `prepublishOnly` script automatically runs the build before publishing.
 
 ## License
 
