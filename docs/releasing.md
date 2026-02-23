@@ -1,58 +1,58 @@
 # Releasing Schema Forge
 
-Este documento describe el flujo de releases con `main` protegido y publicación a npm basada en tags.
+This document describes the release flow with protected `main` and npm publication based on tags.
 
-## Reglas del repositorio
+## Repository Rules
 
-- Todos los cambios deben entrar por Pull Request hacia `main`.
-- No se permiten commits directos a `main` desde workflows.
-- El required status check es el job **Test** del workflow de CI.
+- All changes must go through Pull Requests to `main`.
+- Direct commits to `main` from workflows are not allowed.
+- The required status check is the **Test** job from the CI workflow.
 
-## Flujo recomendado
+## Recommended Flow
 
-### 1) Desarrollo y PR
+### 1) Development and PR
 
-1. Crear rama desde `main`.
-2. Implementar cambios.
-3. Agregar changeset:
+1. Create a branch from `main`.
+2. Implement changes.
+3. Add changeset:
 
-   ```bash
-   npx changeset
-   ```
+  ```bash
+  npx changeset
+  ```
 
-4. Abrir PR hacia `main`.
-5. Esperar CI (job `Test`) en verde.
+1. Open PR to `main`.
+2. Wait for CI (job `Test`) to pass.
 
-### 2) Versionado (antes del merge)
+### 2) Versioning (before merge)
 
-El bump de versión y changelog debe quedar en el PR que se mergea, o hacerse manualmente antes de taggear.
+Version bump and changelog must be included in the PR being merged, or done manually before tagging.
 
-Opciones:
+Options:
 
-- Con Changesets (recomendado):
+- With Changesets (recommended):
 
   ```bash
   npx changeset version
   ```
 
-  Esto actualiza `package.json` y `CHANGELOG.md`.
+  This updates `package.json` and `CHANGELOG.md`.
 
-- Manual (si aplica): actualizar versión/changelog explícitamente antes de crear el tag.
+- Manual (if applicable): update version/changelog explicitly before creating the tag.
 
-Después, commitear estos cambios en la rama del PR y mergear a `main` mediante PR.
+Then, commit these changes in the PR branch and merge to `main` via PR.
 
-### 3) Publicación por tag
+### 3) Publication by Tag
 
-La publicación a npm se dispara con push de tags `v*` usando `.github/workflows/publish.yml`.
+Publishing to npm is triggered by pushing tags matching `v*` using `.github/workflows/publish.yml`.
 
 ```bash
-# Asegúrate de estar sobre el commit correcto en main
+# Ensure you are on the correct commit in main
 VERSION=$(node -p "require('./package.json').version")
 git tag "v$VERSION"
 git push origin "v$VERSION"
 ```
 
-Al pushear el tag, el workflow ejecuta:
+When the tag is pushed, the workflow executes:
 
 1. `npm ci`
 2. `npm run build`
@@ -61,34 +61,34 @@ Al pushear el tag, el workflow ejecuta:
 ## Workflows
 
 - `.github/workflows/ci.yml`
-  - Trigger: `pull_request` a `main`
+  - Trigger: `pull_request` to `main`
   - Job name: `Test` (required check)
-  - Steps: `npm ci`, `npm test` (si existe), `npm run build`
+  - Steps: `npm ci`, `npm test` (if exists), `npm run build`
 
 - `.github/workflows/release-on-main.yml`
-  - Trigger: `push` a `main`
-  - Solo validación/mensajes de preparación
-  - No realiza `git commit` ni `git push origin main`
+  - Trigger: `push` to `main`
+  - Validation and preparation messages only
+  - Does not perform `git commit` or `git push origin main`
 
 - `.github/workflows/publish.yml`
-  - Trigger: `push` de tags `v*`
-  - Publica a npm con Trusted Publishing (OIDC)
+  - Trigger: `push` of tags matching `v*`
+  - Publishes to npm with Trusted Publishing (OIDC)
 
-## Configuración requerida en npm
+## Required npm Configuration
 
-Configurar Trusted Publishing del paquete en npm para este repositorio/workflow.
+Configure Trusted Publishing for your package on npm for this repository/workflow.
 
-En GitHub Actions, el workflow usa `id-token: write` para intercambio OIDC; no requiere `NPM_TOKEN`.
+In GitHub Actions, the workflow uses `id-token: write` for OIDC exchange; it does not require `NPM_TOKEN`.
 
-## Si usas 2FA en npm
+## If You Use 2FA on npm
 
-- Trusted Publishing evita el uso de tokens de publish y no requiere OTP interactivo en CI.
-- Si tu política exige publicación manual, mantener este flujo y ejecutar el publish manual localmente tras crear el tag.
+- Trusted Publishing avoids the use of publish tokens and does not require interactive OTP in CI.
+- If your policy requires manual publishing, maintain this flow and run publish manually locally after creating the tag.
 
-## Checklist de release
+## Release Checklist
 
-1. PR con cambios + changeset/versionado.
-2. CI `Test` en verde.
-3. Merge del PR a `main`.
-4. Crear y pushear tag `vX.Y.Z`.
-5. Verificar ejecución de `publish.yml` y release en npm.
+1. PR with changes + changeset/versioning.
+2. CI `Test` passing.
+3. Merge PR to `main`.
+4. Create and push tag `vX.Y.Z`.
+5. Verify `publish.yml` execution and release on npm.

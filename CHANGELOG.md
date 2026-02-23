@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.1.1
+
+### Patch Changes
+
+- Refactor the npm publish workflow to streamline release execution.
+
+  - Simplify workflow steps in `publish.yml`.
+  - Keep publishing triggered by `v*` tags.
+  - Align authentication with Trusted Publishing (OIDC) setup.
+
 ## 1.1.0
 
 ### Minor Changes
