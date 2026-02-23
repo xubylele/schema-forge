@@ -15,13 +15,13 @@ A modern CLI tool for database schema management with a clean DSL and automatic 
 Install globally via npm:
 
 ```bash
-npm install -g schema-forge
+npm install -g @xubylele/schema-forge
 ```
 
 Or use directly with npx (no installation required):
 
 ```bash
-npx schema-forge init
+npx @xubylele/schema-forge init
 ```
 
 ## Development
@@ -59,7 +59,7 @@ Here's a quick walkthrough to get started with SchemaForge:
 ### 1. Initialize a new project
 
 ```bash
-schemaforge init
+schema-forge init
 ```
 
 This creates:
@@ -96,7 +96,7 @@ table posts {
 ### 3. Generate your first migration
 
 ```bash
-schemaforge generate
+schema-forge generate
 ```
 
 This generates a timestamped SQL migration file with CREATE TABLE statements and updates the state file.
@@ -118,7 +118,7 @@ table users {
 ### 5. Generate a migration for the changes
 
 ```bash
-schemaforge generate --name "add user avatar"
+schema-forge generate --name "add user avatar"
 ```
 
 This generates a new migration file with ALTER TABLE statements.
@@ -126,29 +126,29 @@ This generates a new migration file with ALTER TABLE statements.
 ### 6. Check for pending changes
 
 ```bash
-schemaforge diff
+schema-forge diff
 ```
 
 If your schema matches the state file, you'll see "No changes detected". If there are changes, it will display the SQL that would be generated.
 
 ## Commands
 
-### `schemaforge init`
+### `schema-forge init`
 
 Initialize a new SchemaForge project in the current directory.
 
 ```bash
-schemaforge init
+schema-forge init
 ```
 
 Creates the necessary directory structure and configuration files.
 
-### `schemaforge generate`
+### `schema-forge generate`
 
 Generate SQL migration from schema changes.
 
 ```bash
-schemaforge generate [--name "migration description"]
+schema-forge generate [--name "migration description"]
 ```
 
 **Options:**
@@ -157,12 +157,12 @@ schemaforge generate [--name "migration description"]
 
 Compares your current schema with the tracked state, generates SQL for any changes, and updates the state file.
 
-### `schemaforge diff`
+### `schema-forge diff`
 
 Compare your schema with the current state without generating files.
 
 ```bash
-schemaforge diff
+schema-forge diff
 ```
 
 Shows what SQL would be generated if you ran `generate`. Useful for previewing changes.
@@ -280,10 +280,10 @@ Currently supports:
 
 A typical development workflow looks like this:
 
-1. **Initialize** - `schemaforge init` (one time)
+1. **Initialize** - `schema-forge init` (one time)
 2. **Edit schema** - Modify `schemaforge/schema.sf`
-3. **Preview changes** - `schemaforge diff` (optional)
-4. **Generate migration** - `schemaforge generate --name "description"`
+3. **Preview changes** - `schema-forge diff` (optional)
+4. **Generate migration** - `schema-forge generate --name "description"`
 5. **Apply migration** - Run the generated SQL against your database
 6. **Repeat** - Continue editing and generating migrations as needed
 
@@ -312,6 +312,20 @@ Once your PR is merged to `main`, the release workflow automatically:
 - Publishes to npm
 
 No manual steps required! See [docs/releasing.md](docs/releasing.md) for detailed documentation.
+
+### Publishing Manually
+
+To publish a scoped package to npm:
+
+```bash
+npm publish --access public
+```
+
+Or use the convenience script:
+
+```bash
+npm run publish:public
+```
 
 For detailed guidelines on contributing and automated releases, see [CONTRIBUTING.md](CONTRIBUTING.md) and [docs/releasing.md](docs/releasing.md).
 
