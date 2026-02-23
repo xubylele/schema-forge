@@ -108,14 +108,8 @@ jobs:
           git tag "$TAG"
           git push origin "$TAG"
 
-      - name: Setup npm authentication
-        if: steps.commit_version.outputs.committed == 'true'
-        run: |
-          echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" > ~/.npmrc
-
       - name: Publish to npm
         if: steps.commit_version.outputs.committed == 'true'
         run: npm publish --access public
         env:
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
