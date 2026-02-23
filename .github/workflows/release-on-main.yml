@@ -7,10 +7,12 @@ on:
 
 permissions:
   contents: write
+  id-token: write
 
 concurrency:
   group: release
   cancel-in-progress: false
+
 jobs:
   release:
     name: Release to npm
@@ -51,7 +53,6 @@ jobs:
         id: check_changesets
         if: steps.check_loop.outputs.skip == 'false'
         run: |
-          # Count changeset files (excluding README.md and config.json)
           CHANGESET_COUNT=$(find .changeset -name "*.md" ! -name "README.md" | wc -l | xargs)
           echo "Found $CHANGESET_COUNT changeset(s)"
           if [ "$CHANGESET_COUNT" -eq 0 ]; then
@@ -99,7 +100,6 @@ jobs:
           TAG="v${{ steps.get_version.outputs.version }}"
           echo "Creating tag: $TAG"
 
-          # Check if tag already exists
           if git rev-parse "$TAG" >/dev/null 2>&1; then
             echo "Error: Tag $TAG already exists!"
             exit 1
@@ -108,8 +108,6 @@ jobs:
           git tag "$TAG"
           git push origin "$TAG"
 
-      - name: Publish to npm
+      - name: Publish to npm (Trusted Publishing)
         if: steps.commit_version.outputs.committed == 'true'
         run: npm publish --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
