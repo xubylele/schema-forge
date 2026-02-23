@@ -294,22 +294,20 @@ A typical development workflow looks like this:
 - Commit your schema files and migrations to version control
 - The state file tracks your schema evolution - don't edit it manually
 
-## Publishing to npm
+## Contributing
 
-For maintainers, to publish a new version:
+We welcome contributions! Schema Forge uses automated versioning and releases powered by [Changesets](https://github.com/changesets/changesets).
 
-```bash
-# Login to npm (one time)
-npm login
+When contributing changes:
 
-# Update version in package.json
-npm version patch  # or minor, major
+1. Make your changes in a feature branch
+2. Add a changeset: `npx changeset`
+3. Commit your changes including the changeset file
+4. Open a pull request
 
-# Build and publish
-npm publish --access public
-```
+Once merged, an automated "Version Packages" PR will be created. When that PR is merged, your changes are automatically published to npm.
 
-The `prepublishOnly` script automatically runs the build before publishing.
+For detailed guidelines, see [CONTRIBUTING.md](CONTRIBUTING.md) and [docs/releasing.md](docs/releasing.md).
 
 ## License
 
