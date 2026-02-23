@@ -1,213 +1,125 @@
 import {
-  Schema,
-  SchemaDiff,
-  SchemaField,
-  SchemaTable,
-  TableDiff
+  Column,
+  DatabaseSchema,
+  DiffResult,
+  Operation,
+  StateColumn,
+  StateFile,
 } from '../types/types';
 
 /**
- * Schema diff calculator for SchemaForge
+ * Extract table names from a stored state file.
  */
+export function getTableNamesFromState(state: StateFile): Set<string> {
+  return new Set(Object.keys(state.tables));
+}
 
-export class SchemaDiffer {
-  /**
-   * Compare two schemas and generate a diff
-   */
-  diffSchemas(sourceSchema: Schema, targetSchema: Schema): SchemaDiff {
-    const diff: SchemaDiff = {
-      tablesAdded: [],
-      tablesRemoved: [],
-      tablesModified: [],
-    };
+/**
+ * Extract table names from a database schema.
+ */
+export function getTableNamesFromSchema(schema: DatabaseSchema): Set<string> {
+  return new Set(Object.keys(schema.tables));
+}
 
-    const sourceTableMap = new Map(sourceSchema.tables.map(t => [t.name, t]));
-    const targetTableMap = new Map(targetSchema.tables.map(t => [t.name, t]));
+/**
+ * Extract column names from a state table columns record.
+ */
+export function getColumnNamesFromState(
+  stateColumns: Record<string, StateColumn>
+): Set<string> {
+  return new Set(Object.keys(stateColumns));
+}
 
-    // Find added tables
-    for (const [name, table] of targetTableMap) {
-      if (!sourceTableMap.has(name)) {
-        diff.tablesAdded.push(table);
-      }
+/**
+ * Extract column names from a schema table columns array.
+ */
+export function getColumnNamesFromSchema(dbColumns: Column[]): Set<string> {
+  return new Set(dbColumns.map(column => column.name));
+}
+
+function getSortedNames(names: Set<string>): string[] {
+  return Array.from(names).sort((a, b) => a.localeCompare(b));
+}
+
+/**
+ * Compare a persisted state and a new schema, generating ordered operations.
+ */
+export function diffSchemas(oldState: StateFile, newSchema: DatabaseSchema): DiffResult {
+  const operations: Operation[] = [];
+
+  const oldTableNames = getTableNamesFromState(oldState);
+  const newTableNames = getTableNamesFromSchema(newSchema);
+
+  const sortedNewTableNames = getSortedNames(newTableNames);
+  const sortedOldTableNames = getSortedNames(oldTableNames);
+
+  // Phase 1: create tables (A-Z)
+  for (const tableName of sortedNewTableNames) {
+    if (!oldTableNames.has(tableName)) {
+      operations.push({
+        kind: 'create_table',
+        table: newSchema.tables[tableName],
+      });
     }
-
-    // Find removed tables
-    for (const [name, table] of sourceTableMap) {
-      if (!targetTableMap.has(name)) {
-        diff.tablesRemoved.push(table);
-      }
-    }
-
-    // Find modified tables
-    for (const [name, sourceTable] of sourceTableMap) {
-      const targetTable = targetTableMap.get(name);
-      if (targetTable) {
-        const tableDiff = this.diffTables(sourceTable, targetTable);
-        if (this.hasTableChanges(tableDiff)) {
-          diff.tablesModified.push(tableDiff);
-        }
-      }
-    }
-
-    return diff;
   }
 
-  /**
-   * Compare two tables and generate a diff
-   */
-  private diffTables(sourceTable: SchemaTable, targetTable: SchemaTable): TableDiff {
-    const diff: TableDiff = {
-      name: sourceTable.name,
-      fieldsAdded: [],
-      fieldsRemoved: [],
-      fieldsModified: [],
-      indexesAdded: [],
-      indexesRemoved: [],
-    };
+  const commonTableNames = sortedNewTableNames.filter(tableName =>
+    oldTableNames.has(tableName)
+  );
 
-    const sourceFieldMap = new Map(sourceTable.fields.map(f => [f.name, f]));
-    const targetFieldMap = new Map(targetTable.fields.map(f => [f.name, f]));
+  // Phase 2: add columns in schema order
+  for (const tableName of commonTableNames) {
+    const newTable = newSchema.tables[tableName];
+    const oldTable = oldState.tables[tableName];
 
-    // Find added fields
-    for (const [name, field] of targetFieldMap) {
-      if (!sourceFieldMap.has(name)) {
-        diff.fieldsAdded.push(field);
-      }
+    if (!newTable || !oldTable) {
+      continue;
     }
 
-    // Find removed fields
-    for (const [name, field] of sourceFieldMap) {
-      if (!targetFieldMap.has(name)) {
-        diff.fieldsRemoved.push(field);
-      }
-    }
+    const oldColumnNames = getColumnNamesFromState(oldTable.columns);
 
-    // Find modified fields
-    for (const [name, sourceField] of sourceFieldMap) {
-      const targetField = targetFieldMap.get(name);
-      if (targetField && !this.areFieldsEqual(sourceField, targetField)) {
-        diff.fieldsModified.push({
-          name,
-          oldField: sourceField,
-          newField: targetField,
+    for (const column of newTable.columns) {
+      if (!oldColumnNames.has(column.name)) {
+        operations.push({
+          kind: 'add_column',
+          tableName,
+          column,
         });
       }
     }
-
-    // Diff indexes
-    const sourceIndexes = sourceTable.indexes || [];
-    const targetIndexes = targetTable.indexes || [];
-
-    const sourceIndexMap = new Map(sourceIndexes.map(i => [i.name, i]));
-    const targetIndexMap = new Map(targetIndexes.map(i => [i.name, i]));
-
-    // Find added indexes
-    for (const [name, index] of targetIndexMap) {
-      if (!sourceIndexMap.has(name)) {
-        diff.indexesAdded.push(index);
-      }
-    }
-
-    // Find removed indexes
-    for (const [name, index] of sourceIndexMap) {
-      if (!targetIndexMap.has(name)) {
-        diff.indexesRemoved.push(index);
-      }
-    }
-
-    return diff;
   }
 
-  /**
-   * Check if two fields are equal
-   */
-  private areFieldsEqual(field1: SchemaField, field2: SchemaField): boolean {
-    return (
-      field1.type === field2.type &&
-      field1.required === field2.required &&
-      field1.unique === field2.unique &&
-      field1.length === field2.length &&
-      field1.precision === field2.precision &&
-      field1.scale === field2.scale &&
-      JSON.stringify(field1.default) === JSON.stringify(field2.default) &&
-      JSON.stringify(field1.enumValues) === JSON.stringify(field2.enumValues) &&
-      JSON.stringify(field1.references) === JSON.stringify(field2.references)
-    );
-  }
+  // Phase 3: drop columns in state key order
+  for (const tableName of commonTableNames) {
+    const newTable = newSchema.tables[tableName];
+    const oldTable = oldState.tables[tableName];
 
-  /**
-   * Check if table diff has any changes
-   */
-  private hasTableChanges(tableDiff: TableDiff): boolean {
-    return (
-      tableDiff.fieldsAdded.length > 0 ||
-      tableDiff.fieldsRemoved.length > 0 ||
-      tableDiff.fieldsModified.length > 0 ||
-      tableDiff.indexesAdded.length > 0 ||
-      tableDiff.indexesRemoved.length > 0
-    );
-  }
+    if (!newTable || !oldTable) {
+      continue;
+    }
 
-  /**
-   * Check if schema diff has any changes
-   */
-  hasDifferences(diff: SchemaDiff): boolean {
-    return (
-      diff.tablesAdded.length > 0 ||
-      diff.tablesRemoved.length > 0 ||
-      diff.tablesModified.length > 0
-    );
-  }
+    const newColumnNames = getColumnNamesFromSchema(newTable.columns);
 
-  /**
-   * Generate a human-readable summary of the diff
-   */
-  generateDiffSummary(diff: SchemaDiff): string {
-    const lines: string[] = [];
-
-    if (diff.tablesAdded.length > 0) {
-      lines.push(`\nTables Added (${diff.tablesAdded.length}):`);
-      for (const table of diff.tablesAdded) {
-        lines.push(`  + ${table.name}`);
+    for (const columnName of Object.keys(oldTable.columns)) {
+      if (!newColumnNames.has(columnName)) {
+        operations.push({
+          kind: 'drop_column',
+          tableName,
+          columnName,
+        });
       }
     }
-
-    if (diff.tablesRemoved.length > 0) {
-      lines.push(`\nTables Removed (${diff.tablesRemoved.length}):`);
-      for (const table of diff.tablesRemoved) {
-        lines.push(`  - ${table.name}`);
-      }
-    }
-
-    if (diff.tablesModified.length > 0) {
-      lines.push(`\nTables Modified (${diff.tablesModified.length}):`);
-      for (const tableDiff of diff.tablesModified) {
-        lines.push(`  ~ ${tableDiff.name}`);
-
-        if (tableDiff.fieldsAdded.length > 0) {
-          lines.push(`    Fields Added: ${tableDiff.fieldsAdded.map(f => f.name).join(', ')}`);
-        }
-        if (tableDiff.fieldsRemoved.length > 0) {
-          lines.push(`    Fields Removed: ${tableDiff.fieldsRemoved.map(f => f.name).join(', ')}`);
-        }
-        if (tableDiff.fieldsModified.length > 0) {
-          lines.push(`    Fields Modified: ${tableDiff.fieldsModified.map(f => f.name).join(', ')}`);
-        }
-        if (tableDiff.indexesAdded.length > 0) {
-          lines.push(`    Indexes Added: ${tableDiff.indexesAdded.map(i => i.name).join(', ')}`);
-        }
-        if (tableDiff.indexesRemoved.length > 0) {
-          lines.push(`    Indexes Removed: ${tableDiff.indexesRemoved.map(i => i.name).join(', ')}`);
-        }
-      }
-    }
-
-    if (lines.length === 0) {
-      return 'No differences found';
-    }
-
-    return lines.join('\n');
   }
+
+  // Phase 4: drop tables (A-Z)
+  for (const tableName of sortedOldTableNames) {
+    if (!newTableNames.has(tableName)) {
+      operations.push({
+        kind: 'drop_table',
+        tableName,
+      });
+    }
+  }
+
+  return { operations };
 }
-
-export const defaultDiffer = new SchemaDiffer();
