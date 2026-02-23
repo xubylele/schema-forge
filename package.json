@@ -28,7 +28,7 @@
   "license": "ISC",
   "repository": {
     "type": "git",
-    "url": "https://github.com/xubylele/schema-forge.git"
+    "url": "git+https://github.com/xubylele/schema-forge.git"
   },
   "bugs": "https://github.com/xubylele/schema-forge/issues",
   "homepage": "https://github.com/xubylele/schema-forge#readme",
