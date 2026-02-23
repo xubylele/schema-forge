@@ -1,6 +1,14 @@
 # SchemaForge
 
-CLI tool for schema management and SQL generation.
+A modern CLI tool for database schema management with a clean DSL and automatic SQL migration generation.
+
+## Features
+
+- **Simple DSL** - Define your schema with a clean, intuitive syntax
+- **Migration Generation** - Automatically generate SQL migrations from schema changes
+- **State Tracking** - Built-in state management to track your schema evolution
+- **Type Safety** - Validates your schema before generating SQL
+- **Postgres/Supabase** - Currently supports PostgreSQL and Supabase
 
 ## Installation
 
@@ -28,137 +36,247 @@ Run tests:
 npm test
 ```
 
+## Getting Started
+
+Here's a quick walkthrough to get started with SchemaForge:
+
+### 1. Initialize a new project
+
+```bash
+schemaforge init
+```
+
+This creates:
+
+- `schemaforge/schema.sf` - Your schema definition file
+- `schemaforge/config.json` - Project configuration
+- `schemaforge/state.json` - State tracking file
+- `supabase/migrations/` - Directory for generated migrations
+
+### 2. Define your schema
+
+Edit `schemaforge/schema.sf`:
+
+```sql
+# SchemaForge schema definition
+
+table users {
+  id uuid pk
+  email varchar unique
+  name text
+  created_at timestamptz default now()
+}
+
+table posts {
+  id uuid pk
+  user_id uuid fk users.id
+  title varchar
+  content text
+  published boolean default false
+  created_at timestamptz default now()
+}
+```
+
+### 3. Generate your first migration
+
+```bash
+schemaforge generate
+```
+
+This generates a timestamped SQL migration file with CREATE TABLE statements and updates the state file.
+
+### 4. Make schema changes
+
+Edit `schemaforge/schema.sf` to add a new column:
+
+```sql
+table users {
+  id uuid pk
+  email varchar unique
+  name text
+  avatar_url text          # New column!
+  created_at timestamptz default now()
+}
+```
+
+### 5. Generate a migration for the changes
+
+```bash
+schemaforge generate --name "add user avatar"
+```
+
+This generates a new migration file with ALTER TABLE statements.
+
+### 6. Check for pending changes
+
+```bash
+schemaforge diff
+```
+
+If your schema matches the state file, you'll see "No changes detected". If there are changes, it will display the SQL that would be generated.
+
 ## Commands
 
-### Initialize a new project
+### `schemaforge init`
+
+Initialize a new SchemaForge project in the current directory.
 
 ```bash
-schemaforge init [options]
-
-Options:
-  -d, --dir <directory>  Target directory (default: ".")
-  -f, --force            Force initialization even if files exist
+schemaforge init
 ```
 
-### Generate SQL from schemas
+Creates the necessary directory structure and configuration files.
+
+### `schemaforge generate`
+
+Generate SQL migration from schema changes.
 
 ```bash
-schemaforge generate [options]
-
-Options:
-  -i, --input <path>     Input schema file or directory (default: "./schemas")
-  -o, --output <path>    Output SQL file (default: "./output.sql")
-  -t, --type <type>      Database type: postgres, mysql, sqlite (default: "postgres")
-  --dry-run              Show generated SQL without writing to file
+schemaforge generate [--name "migration description"]
 ```
 
-### Compare schemas and generate migrations
+**Options:**
+
+- `--name` - Optional name for the migration (default: "migration")
+
+Compares your current schema with the tracked state, generates SQL for any changes, and updates the state file.
+
+### `schemaforge diff`
+
+Compare your schema with the current state without generating files.
 
 ```bash
-schemaforge diff <source> <target> [options]
+schemaforge diff
+```
 
-Arguments:
-  source                 Source schema file or directory
-  target                 Target schema file or directory
+Shows what SQL would be generated if you ran `generate`. Useful for previewing changes.
 
-Options:
-  -o, --output <path>    Output migration SQL file
-  -t, --type <type>      Database type: postgres, mysql, sqlite (default: "postgres")
-  --format <format>      Output format: sql, json (default: "sql")
+## Schema DSL Format
+
+Schemas are defined using the `.sf` format with a clean, readable syntax.
+
+### Basic Syntax
+
+```sql
+# Comments start with # or //
+
+table table_name {
+  column_name column_type [modifiers...]
+}
+```
+
+### Supported Column Types
+
+- `uuid` - UUID/GUID
+- `varchar` - Variable-length string
+- `text` - Long text
+- `int` - Integer
+- `boolean` - Boolean value
+- `timestamptz` - Timestamp with timezone
+- `date` - Date without time
+
+### Column Modifiers
+
+- `pk` - Primary key
+- `unique` - Unique constraint
+- `nullable` - Allow NULL values (columns are NOT NULL by default)
+- `default <value>` - Default value (e.g., `default now()`, `default false`, `default 0`)
+- `fk <table>.<column>` - Foreign key reference (e.g., `fk users.id`)
+
+### Examples
+
+#### Simple table
+
+```sql
+table users {
+  id uuid pk
+  email varchar unique
+  name text
+  created_at timestamptz default now()
+}
+```
+
+#### Table with foreign keys
+
+```sql
+table posts {
+  id uuid pk
+  author_id uuid fk users.id
+  title varchar
+  content text
+  published boolean default false
+  created_at timestamptz default now()
+}
+```
+
+#### Table with nullable columns
+
+```sql
+table profiles {
+  id uuid pk
+  user_id uuid fk users.id
+  bio text nullable
+  avatar_url text nullable
+  website varchar nullable
+  updated_at timestamptz default now()
+}
 ```
 
 ## Project Structure
 
-```cmd
-schema-forge/
-├── src/
-│   ├── cli.ts                    # CLI entrypoint
-│   ├── commands/
-│   │   ├── init.ts               # Init command
-│   │   ├── generate.ts           # Generate command
-│   │   └── diff.ts               # Diff command
-│   ├── core/
-│   │   ├── types.ts              # Type definitions
-│   │   ├── paths.ts              # Path utilities
-│   │   ├── fs.ts                 # File system utilities
-│   │   ├── parser.ts             # Schema parser
-│   │   ├── validator.ts          # Schema validator
-│   │   ├── state-manager.ts      # State management
-│   │   └── diff.ts               # Schema diff calculator
-│   └── generator/
-│       └── sql-generator.ts      # SQL generator
-├── package.json
-├── tsconfig.json
-└── README.md
+```bash
+your-project/
+├── schemaforge/
+│   ├── schema.sf          # Your schema definition (edit this!)
+│   ├── config.json        # Project configuration
+│   └── state.json         # State tracking (auto-generated)
+└── supabase/
+    └── migrations/        # Generated SQL migrations
+        ├── 20240101120000-initial.sql
+        └── 20240101120100-add-user-avatar.sql
 ```
 
-## Schema Format
+## Configuration
 
-Schemas are defined in JSON format with `.schema.json` extension:
+The `schemaforge/config.json` file contains project configuration:
 
 ```json
 {
-  "version": "1.0.0",
-  "database": "postgres",
-  "tables": [
-    {
-      "name": "users",
-      "fields": [
-        {
-          "name": "id",
-          "type": "uuid",
-          "required": true,
-          "unique": true
-        },
-        {
-          "name": "email",
-          "type": "string",
-          "required": true,
-          "unique": true,
-          "length": 255
-        },
-        {
-          "name": "name",
-          "type": "string",
-          "required": true,
-          "length": 255
-        },
-        {
-          "name": "created_at",
-          "type": "datetime",
-          "required": true
-        }
-      ],
-      "indexes": [
-        {
-          "name": "idx_users_email",
-          "fields": ["email"],
-          "unique": true
-        }
-      ]
-    }
-  ]
+  "provider": "supabase",
+  "outputDir": "supabase/migrations",
+  "schemaFile": "schemaforge/schema.sf",
+  "stateFile": "schemaforge/state.json",
+  "sql": {
+    "uuidDefault": "gen_random_uuid()",
+    "timestampDefault": "now()"
+  }
 }
 ```
 
-## Supported Field Types
-
-- `string` - Variable-length string
-- `text` - Long text
-- `number` - Floating point number
-- `integer` - Integer number
-- `boolean` - Boolean value
-- `date` - Date without time
-- `datetime` - Date with time
-- `uuid` - UUID/GUID
-- `json` - JSON data
-- `enum` - Enumerated values
-
 ## Supported Databases
 
+Currently supports:
+
 - PostgreSQL (`postgres`)
-- MySQL (`mysql`)
-- SQLite (`sqlite`)
+- Supabase (`supabase`)
+
+## Development Workflow
+
+A typical development workflow looks like this:
+
+1. **Initialize** - `schemaforge init` (one time)
+2. **Edit schema** - Modify `schemaforge/schema.sf`
+3. **Preview changes** - `schemaforge diff` (optional)
+4. **Generate migration** - `schemaforge generate --name "description"`
+5. **Apply migration** - Run the generated SQL against your database
+6. **Repeat** - Continue editing and generating migrations as needed
+
+## Tips
+
+- Use descriptive migration names with `--name` to make your migration history readable
+- Run `diff` before `generate` to preview what SQL will be created
+- Commit your schema files and migrations to version control
+- The state file tracks your schema evolution - don't edit it manually
 
 ## License
 

@@ -29,3 +29,6 @@ Thumbs.db
 # Misc
 .cache/
 .parcel-cache/
+
+# Testing
+sandbox/
