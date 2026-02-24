@@ -242,14 +242,14 @@ table profiles {
 
 ```bash
 your-project/
-├── schemaforge/
-│   ├── schema.sf          # Your schema definition (edit this!)
-│   ├── config.json        # Project configuration
-│   └── state.json         # State tracking (auto-generated)
-└── supabase/
-    └── migrations/        # Generated SQL migrations
-        ├── 20240101120000-initial.sql
-        └── 20240101120100-add-user-avatar.sql
++-- schemaforge/
+|   +-- schema.sf          # Your schema definition (edit this!)
+|   +-- config.json        # Project configuration
+|   \-- state.json         # State tracking (auto-generated)
+\-- supabase/
+  \-- migrations/        # Generated SQL migrations
+    +-- 20240101120000-initial.sql
+    \-- 20240101120100-add-user-avatar.sql
 ```
 
 ## Configuration

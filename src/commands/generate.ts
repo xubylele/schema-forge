@@ -95,7 +95,7 @@ export async function runGenerate(options: GenerateOptions): Promise<void> {
   const nextState = await schemaToState(schema);
   await saveState(statePath, nextState);
 
-  console.log(`✓ SQL generated successfully: ${migrationPath}`);
+  console.log(`[OK] SQL generated successfully: ${migrationPath}`);
 }
 
 export function createGenerateCommand(): Command {
