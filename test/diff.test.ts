@@ -446,6 +446,181 @@ describe('diffSchemas', () => {
     expect(result.operations).toEqual([]);
   });
 
+  it('should detect nullable to not null change', () => {
+    const oldState: StateFile = {
+      version: 1,
+      tables: {
+        users: {
+          columns: {
+            email: { type: 'text', nullable: true },
+          },
+        },
+      },
+    };
+
+    const newSchema: DatabaseSchema = {
+      tables: {
+        users: {
+          name: 'users',
+          columns: [{ name: 'email', type: 'text', nullable: false }],
+        },
+      },
+    };
+
+    const result = diffSchemas(oldState, newSchema);
+    expect(result.operations).toEqual([
+      {
+        kind: 'column_nullability_changed',
+        tableName: 'users',
+        columnName: 'email',
+        from: true,
+        to: false,
+      },
+    ]);
+  });
+
+  it('should detect not null to nullable change', () => {
+    const oldState: StateFile = {
+      version: 1,
+      tables: {
+        users: {
+          columns: {
+            email: { type: 'text', nullable: false },
+          },
+        },
+      },
+    };
+
+    const newSchema: DatabaseSchema = {
+      tables: {
+        users: {
+          name: 'users',
+          columns: [{ name: 'email', type: 'text', nullable: true }],
+        },
+      },
+    };
+
+    const result = diffSchemas(oldState, newSchema);
+    expect(result.operations).toEqual([
+      {
+        kind: 'column_nullability_changed',
+        tableName: 'users',
+        columnName: 'email',
+        from: false,
+        to: true,
+      },
+    ]);
+  });
+
+  it('should not emit nullability change when nullability is unchanged', () => {
+    const oldState: StateFile = {
+      version: 1,
+      tables: {
+        users: {
+          columns: {
+            email: { type: 'text', nullable: true },
+          },
+        },
+      },
+    };
+
+    const newSchema: DatabaseSchema = {
+      tables: {
+        users: {
+          name: 'users',
+          columns: [{ name: 'email', type: 'text', nullable: true }],
+        },
+      },
+    };
+
+    const result = diffSchemas(oldState, newSchema);
+    expect(result.operations).toEqual([]);
+  });
+
+  it('should detect multiple nullability changes in same table', () => {
+    const oldState: StateFile = {
+      version: 1,
+      tables: {
+        users: {
+          columns: {
+            email: { type: 'text', nullable: true },
+            nickname: { type: 'varchar', nullable: false },
+          },
+        },
+      },
+    };
+
+    const newSchema: DatabaseSchema = {
+      tables: {
+        users: {
+          name: 'users',
+          columns: [
+            { name: 'email', type: 'text', nullable: false },
+            { name: 'nickname', type: 'varchar', nullable: true },
+          ],
+        },
+      },
+    };
+
+    const result = diffSchemas(oldState, newSchema);
+    expect(result.operations).toEqual([
+      {
+        kind: 'column_nullability_changed',
+        tableName: 'users',
+        columnName: 'email',
+        from: true,
+        to: false,
+      },
+      {
+        kind: 'column_nullability_changed',
+        tableName: 'users',
+        columnName: 'nickname',
+        from: false,
+        to: true,
+      },
+    ]);
+  });
+
+  it('should emit type change before nullability change for same column', () => {
+    const oldState: StateFile = {
+      version: 1,
+      tables: {
+        users: {
+          columns: {
+            email: { type: 'varchar', nullable: true },
+          },
+        },
+      },
+    };
+
+    const newSchema: DatabaseSchema = {
+      tables: {
+        users: {
+          name: 'users',
+          columns: [{ name: 'email', type: 'text', nullable: false }],
+        },
+      },
+    };
+
+    const result = diffSchemas(oldState, newSchema);
+    expect(result.operations).toEqual([
+      {
+        kind: 'column_type_changed',
+        tableName: 'users',
+        columnName: 'email',
+        fromType: 'varchar',
+        toType: 'text',
+      },
+      {
+        kind: 'column_nullability_changed',
+        tableName: 'users',
+        columnName: 'email',
+        from: true,
+        to: false,
+      },
+    ]);
+  });
+
   it('should detect primary key added', () => {
     const oldState: StateFile = {
       version: 1,

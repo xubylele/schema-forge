@@ -174,7 +174,7 @@ export async function schemaToState(schema: DatabaseSchema): Promise<StateFile> 
         type: column.type,
         ...(column.primaryKey !== undefined && { primaryKey: column.primaryKey }),
         ...(column.unique !== undefined && { unique: column.unique }),
-        ...(column.nullable !== undefined && { nullable: column.nullable }),
+        nullable: column.nullable ?? true,
         ...(column.default !== undefined && { default: column.default }),
         ...(column.foreignKey !== undefined && { foreignKey: column.foreignKey }),
       };

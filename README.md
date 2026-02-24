@@ -8,6 +8,7 @@ A modern CLI tool for database schema management with a clean DSL and automatic 
 - **Migration Generation** - Automatically generate SQL migrations from schema changes
 - **State Tracking** - Built-in state management to track your schema evolution
 - **Type Safety** - Validates your schema before generating SQL
+- **Default Change Detection** - Detects added/removed/modified column defaults and generates ALTER COLUMN SET/DROP DEFAULT
 - **Postgres/Supabase** - Currently supports PostgreSQL and Supabase
 - **Constraint Diffing** - Detects UNIQUE and PRIMARY KEY changes with deterministic constraint names
 
@@ -79,15 +80,15 @@ Edit `schemaforge/schema.sf`:
 
 table users {
   id uuid pk
-  email varchar unique
-  name text
+  email varchar unique not null
+  name text not null
   created_at timestamptz default now()
 }
 
 table posts {
   id uuid pk
-  user_id uuid fk users.id
-  title varchar
+  user_id uuid fk users.id not null
+  title varchar not null
   content text
   published boolean default false
   created_at timestamptz default now()
@@ -109,8 +110,8 @@ Edit `schemaforge/schema.sf` to add a new column:
 ```sql
 table users {
   id uuid pk
-  email varchar unique
-  name text
+  email varchar unique not null
+  name text not null
   avatar_url text          # New column!
   created_at timestamptz default now()
 }
@@ -131,6 +132,25 @@ schema-forge diff
 ```
 
 If your schema matches the state file, you'll see "No changes detected". If there are changes, it will display the SQL that would be generated.
+
+### Default value changes
+
+Schema Forge also tracks default changes on existing columns when diffing `schema.sf` against `state.json`.
+
+Supported migration output:
+
+```sql
+ALTER TABLE <table_name> ALTER COLUMN <column_name> SET DEFAULT <expr>;
+ALTER TABLE <table_name> ALTER COLUMN <column_name> DROP DEFAULT;
+```
+
+Examples:
+
+- Add default: `created_at timestamptz` -> `created_at timestamptz default now()`
+- Remove default: `created_at timestamptz default now()` -> `created_at timestamptz`
+- Modify default: `default now()` -> `default timezone('utc', now())`
+
+For common function-style defaults, comparisons are normalized to avoid obvious false positives (for example `NOW()` and `now()`).
 
 ## Commands
 
@@ -210,6 +230,13 @@ ALTER TABLE users ADD CONSTRAINT pk_users PRIMARY KEY (user_id);
 
 When dropping constraints, SchemaForge attempts deterministic names first, then PostgreSQL legacy defaults (`<table>_pkey`, `<table>_<column>_key`) for compatibility.
 
+Also includes nullability migrations when `not null` is added or removed:
+
+```sql
+ALTER TABLE users ALTER COLUMN email SET NOT NULL;
+ALTER TABLE users ALTER COLUMN email DROP NOT NULL;
+```
+
 ## Schema DSL Format
 
 Schemas are defined using the `.sf` format with a clean, readable syntax.
@@ -238,7 +265,8 @@ table table_name {
 
 - `pk` - Primary key
 - `unique` - Unique constraint
-- `nullable` - Allow NULL values (columns are NOT NULL by default)
+- `not null` - Disallow NULL values
+- `nullable` - Allow NULL values (default when `not null` is not provided)
 - `default <value>` - Default value (e.g., `default now()`, `default false`, `default 0`)
 - `fk <table>.<column>` - Foreign key reference (e.g., `fk users.id`)
 
@@ -249,8 +277,8 @@ table table_name {
 ```sql
 table users {
   id uuid pk
-  email varchar unique
-  name text
+  email varchar unique not null
+  name text not null
   created_at timestamptz default now()
 }
 ```
@@ -260,20 +288,20 @@ table users {
 ```sql
 table posts {
   id uuid pk
-  author_id uuid fk users.id
-  title varchar
+  author_id uuid fk users.id not null
+  title varchar not null
   content text
   published boolean default false
   created_at timestamptz default now()
 }
 ```
 
-#### Table with nullable columns
+#### Table with mixed nullability
 
 ```sql
 table profiles {
   id uuid pk
-  user_id uuid fk users.id
+  user_id uuid fk users.id not null
   bio text nullable
   avatar_url text nullable
   website varchar nullable

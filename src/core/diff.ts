@@ -6,6 +6,7 @@ import {
   StateColumn,
   StateFile,
 } from '../types/types';
+import { normalizeDefault } from './normalize';
 
 /**
  * Extract table names from a stored state file.
@@ -59,6 +60,10 @@ function resolveStatePrimaryKey(table: StateFile['tables'][string]): string | nu
 
 function resolveSchemaPrimaryKey(table: DatabaseSchema['tables'][string]): string | null {
   return table.primaryKey ?? table.columns.find(column => column.primaryKey)?.name ?? null;
+}
+
+function normalizeNullable(nullable?: boolean): boolean {
+  return nullable ?? true;
 }
 
 /**
@@ -167,7 +172,67 @@ export function diffSchemas(oldState: StateFile, newSchema: DatabaseSchema): Dif
     }
   }
 
-  // Phase 5: add columns in schema order
+  // Phase 5: detect column nullability changes in schema order
+  for (const tableName of commonTableNames) {
+    const newTable = newSchema.tables[tableName];
+    const oldTable = oldState.tables[tableName];
+
+    if (!newTable || !oldTable) {
+      continue;
+    }
+
+    for (const column of newTable.columns) {
+      const previousColumn = oldTable.columns[column.name];
+      if (!previousColumn) {
+        continue;
+      }
+
+      const previousNullable = normalizeNullable(previousColumn.nullable);
+      const currentNullable = normalizeNullable(column.nullable);
+
+      if (previousNullable !== currentNullable) {
+        operations.push({
+          kind: 'column_nullability_changed',
+          tableName,
+          columnName: column.name,
+          from: previousNullable,
+          to: currentNullable,
+        });
+      }
+    }
+  }
+
+  // Phase 6: detect column default changes in schema order
+  for (const tableName of commonTableNames) {
+    const newTable = newSchema.tables[tableName];
+    const oldTable = oldState.tables[tableName];
+
+    if (!newTable || !oldTable) {
+      continue;
+    }
+
+    for (const column of newTable.columns) {
+      const previousColumn = oldTable.columns[column.name];
+      if (!previousColumn) {
+        continue;
+      }
+
+      const previousDefault = normalizeDefault(previousColumn.default);
+      const currentDefault = normalizeDefault(column.default);
+
+      if (previousDefault !== currentDefault) {
+        operations.push({
+          kind: 'column_default_changed',
+          tableName,
+          columnName: column.name,
+          fromDefault: previousDefault,
+          toDefault: currentDefault,
+        });
+      }
+    }
+  }
+
+  // Phase 7: add columns in schema order
   for (const tableName of commonTableNames) {
     const newTable = newSchema.tables[tableName];
     const oldTable = oldState.tables[tableName];
@@ -189,7 +254,7 @@ export function diffSchemas(oldState: StateFile, newSchema: DatabaseSchema): Dif
     }
   }
 
-  // Phase 6: add PK constraints for added/changed primary keys
+  // Phase 8: add PK constraints for added/changed primary keys
   for (const tableName of commonTableNames) {
     const newTable = newSchema.tables[tableName];
     const oldTable = oldState.tables[tableName];
@@ -210,7 +275,7 @@ export function diffSchemas(oldState: StateFile, newSchema: DatabaseSchema): Dif
     }
   }
 
-  // Phase 7: drop columns in state key order
+  // Phase 9: drop columns in state key order
   for (const tableName of commonTableNames) {
     const newTable = newSchema.tables[tableName];
     const oldTable = oldState.tables[tableName];
@@ -232,7 +297,7 @@ export function diffSchemas(oldState: StateFile, newSchema: DatabaseSchema): Dif
     }
   }
 
-  // Phase 8: drop tables (A-Z)
+  // Phase 10: drop tables (A-Z)
   for (const tableName of sortedOldTableNames) {
     if (!newTableNames.has(tableName)) {
       operations.push({

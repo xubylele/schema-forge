@@ -41,8 +41,20 @@ function generateOperation(
         operation.columnName,
         operation.toType
       );
+    case 'column_nullability_changed':
+      return generateAlterColumnNullability(
+        operation.tableName,
+        operation.columnName,
+        operation.to
+      );
     case 'add_column':
       return generateAddColumn(operation.tableName, operation.column, provider, sqlConfig);
+    case 'column_default_changed':
+      return generateAlterColumnDefault(
+        operation.tableName,
+        operation.columnName,
+        operation.toDefault
+      );
     case 'drop_column':
       return generateDropColumn(operation.tableName, operation.columnName);
     case 'column_unique_changed':
@@ -174,4 +186,28 @@ function generateDropConstraintStatements(tableName: string, constraintNames: st
       `ALTER TABLE ${tableName} DROP CONSTRAINT IF EXISTS ${constraintName};`
     )
     .join('\n');
+}
+
+function generateAlterColumnDefault(
+  tableName: string,
+  columnName: string,
+  newDefault: string | null
+): string {
+  if (newDefault === null) {
+    return `ALTER TABLE ${tableName} ALTER COLUMN ${columnName} DROP DEFAULT;`;
+  }
+
+  return `ALTER TABLE ${tableName} ALTER COLUMN ${columnName} SET DEFAULT ${newDefault};`;
+}
+
+function generateAlterColumnNullability(
+  tableName: string,
+  columnName: string,
+  toNullable: boolean
+): string {
+  if (toNullable) {
+    return `ALTER TABLE ${tableName} ALTER COLUMN ${columnName} DROP NOT NULL;`;
+  }
+
+  return `ALTER TABLE ${tableName} ALTER COLUMN ${columnName} SET NOT NULL;`;
 }

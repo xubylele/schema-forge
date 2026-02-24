@@ -17,9 +17,9 @@ describe('parseSchema', () => {
     expect(result.tables).toHaveProperty('users');
     expect(result.tables.users.name).toBe('users');
     expect(result.tables.users.columns).toHaveLength(3);
-    expect(result.tables.users.columns[0]).toEqual({ name: 'id', type: 'uuid' });
-    expect(result.tables.users.columns[1]).toEqual({ name: 'email', type: 'varchar' });
-    expect(result.tables.users.columns[2]).toEqual({ name: 'name', type: 'text' });
+    expect(result.tables.users.columns[0]).toEqual({ name: 'id', type: 'uuid', nullable: true });
+    expect(result.tables.users.columns[1]).toEqual({ name: 'email', type: 'varchar', nullable: true });
+    expect(result.tables.users.columns[2]).toEqual({ name: 'name', type: 'text', nullable: true });
   });
 
   it('should parse primary key modifier', () => {
@@ -34,7 +34,8 @@ describe('parseSchema', () => {
     expect(result.tables.users.columns[0]).toEqual({
       name: 'id',
       type: 'uuid',
-      primaryKey: true
+      primaryKey: true,
+      nullable: true
     });
     expect(result.tables.users.primaryKey).toBe('id');
   });
@@ -51,7 +52,8 @@ describe('parseSchema', () => {
     expect(result.tables.users.columns[0]).toEqual({
       name: 'email',
       type: 'varchar',
-      unique: true
+      unique: true,
+      nullable: true
     });
   });
 
@@ -68,6 +70,22 @@ describe('parseSchema', () => {
       name: 'bio',
       type: 'text',
       nullable: true
+    });
+  });
+
+  it('should parse not null modifier', () => {
+    const source = `
+      table users {
+        email text not null
+      }
+    `;
+
+    const result = parseSchema(source);
+
+    expect(result.tables.users.columns[0]).toEqual({
+      name: 'email',
+      type: 'text',
+      nullable: false
     });
   });
 
@@ -89,6 +107,20 @@ describe('parseSchema', () => {
     expect(result.tables.posts.columns[3].default).toBe('now()');
   });
 
+  it('should parse default expressions that contain spaces', () => {
+    const source = `
+      table sessions {
+        expires_at timestamptz default timezone('utc', now())
+        ttl text default interval '1 day'
+      }
+    `;
+
+    const result = parseSchema(source);
+
+    expect(result.tables.sessions.columns[0].default).toBe("timezone('utc', now())");
+    expect(result.tables.sessions.columns[1].default).toBe("interval '1 day'");
+  });
+
   it('should parse foreign key modifier', () => {
     const source = `
       table posts {
@@ -101,6 +133,7 @@ describe('parseSchema', () => {
     expect(result.tables.posts.columns[0]).toEqual({
       name: 'user_id',
       type: 'uuid',
+      nullable: true,
       foreignKey: {
         table: 'users',
         column: 'id'
@@ -405,12 +438,14 @@ describe('parseSchema', () => {
     expect(result.tables.posts.columns.find(c => c.name === 'user_id')).toEqual({
       name: 'user_id',
       type: 'uuid',
+      nullable: true,
       foreignKey: { table: 'users', column: 'id' }
     });
 
     expect(result.tables.posts.columns.find(c => c.name === 'published')).toEqual({
       name: 'published',
       type: 'boolean',
+      nullable: true,
       default: 'false'
     });
   });
@@ -435,6 +470,7 @@ describe('parseSchema', () => {
       name: 'id',
       type: 'uuid',
       primaryKey: true,
+      nullable: true,
       default: 'gen_random_uuid()'
     });
 
@@ -443,6 +479,7 @@ describe('parseSchema', () => {
     expect(profileIdCol).toEqual({
       name: 'profile_id',
       type: 'uuid',
+      nullable: true,
       foreignKey: { table: 'profiles', column: 'id' }
     });
 
