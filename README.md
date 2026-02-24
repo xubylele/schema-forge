@@ -78,15 +78,15 @@ Edit `schemaforge/schema.sf`:
 
 table users {
   id uuid pk
-  email varchar unique
-  name text
+  email varchar unique not null
+  name text not null
   created_at timestamptz default now()
 }
 
 table posts {
   id uuid pk
-  user_id uuid fk users.id
-  title varchar
+  user_id uuid fk users.id not null
+  title varchar not null
   content text
   published boolean default false
   created_at timestamptz default now()
@@ -108,8 +108,8 @@ Edit `schemaforge/schema.sf` to add a new column:
 ```sql
 table users {
   id uuid pk
-  email varchar unique
-  name text
+  email varchar unique not null
+  name text not null
   avatar_url text          # New column!
   created_at timestamptz default now()
 }
@@ -167,6 +167,13 @@ schema-forge diff
 
 Shows what SQL would be generated if you ran `generate`. Useful for previewing changes.
 
+Also includes nullability migrations when `not null` is added or removed:
+
+```sql
+ALTER TABLE users ALTER COLUMN email SET NOT NULL;
+ALTER TABLE users ALTER COLUMN email DROP NOT NULL;
+```
+
 ## Schema DSL Format
 
 Schemas are defined using the `.sf` format with a clean, readable syntax.
@@ -195,7 +202,8 @@ table table_name {
 
 - `pk` - Primary key
 - `unique` - Unique constraint
-- `nullable` - Allow NULL values (columns are NOT NULL by default)
+- `not null` - Disallow NULL values
+- `nullable` - Allow NULL values (default when `not null` is not provided)
 - `default <value>` - Default value (e.g., `default now()`, `default false`, `default 0`)
 - `fk <table>.<column>` - Foreign key reference (e.g., `fk users.id`)
 
@@ -206,8 +214,8 @@ table table_name {
 ```sql
 table users {
   id uuid pk
-  email varchar unique
-  name text
+  email varchar unique not null
+  name text not null
   created_at timestamptz default now()
 }
 ```
@@ -217,20 +225,20 @@ table users {
 ```sql
 table posts {
   id uuid pk
-  author_id uuid fk users.id
-  title varchar
+  author_id uuid fk users.id not null
+  title varchar not null
   content text
   published boolean default false
   created_at timestamptz default now()
 }
 ```
 
-#### Table with nullable columns
+#### Table with mixed nullability
 
 ```sql
 table profiles {
   id uuid pk
-  user_id uuid fk users.id
+  user_id uuid fk users.id not null
   bio text nullable
   avatar_url text nullable
   website varchar nullable

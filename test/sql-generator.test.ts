@@ -110,6 +110,67 @@ describe('SQL Generator', () => {
       );
     });
 
+    it('should generate alter column set not null statement', () => {
+      const diff: DiffResult = {
+        operations: [
+          {
+            kind: 'column_nullability_changed',
+            tableName: 'users',
+            columnName: 'email',
+            from: true,
+            to: false,
+          },
+        ],
+      };
+
+      const result = generateSql(diff, 'postgres');
+      expect(result).toBe('ALTER TABLE users ALTER COLUMN email SET NOT NULL;');
+    });
+
+    it('should generate alter column drop not null statement', () => {
+      const diff: DiffResult = {
+        operations: [
+          {
+            kind: 'column_nullability_changed',
+            tableName: 'users',
+            columnName: 'email',
+            from: false,
+            to: true,
+          },
+        ],
+      };
+
+      const result = generateSql(diff, 'postgres');
+      expect(result).toBe('ALTER TABLE users ALTER COLUMN email DROP NOT NULL;');
+    });
+
+    it('should generate type change before nullability change when both operations exist', () => {
+      const diff: DiffResult = {
+        operations: [
+          {
+            kind: 'column_type_changed',
+            tableName: 'users',
+            columnName: 'email',
+            fromType: 'varchar',
+            toType: 'text',
+          },
+          {
+            kind: 'column_nullability_changed',
+            tableName: 'users',
+            columnName: 'email',
+            from: true,
+            to: false,
+          },
+        ],
+      };
+
+      const result = generateSql(diff, 'postgres');
+      expect(result).toBe([
+        'ALTER TABLE users ALTER COLUMN email TYPE text USING email::text;',
+        'ALTER TABLE users ALTER COLUMN email SET NOT NULL;',
+      ].join('\n\n'));
+    });
+
     it('should generate multiple operations separated by newlines', () => {
       const table: Table = {
         name: 'posts',

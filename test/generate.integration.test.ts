@@ -146,4 +146,150 @@ describe('runGenerate integration', () => {
     }>(statePath);
     expect(state.tables.users.columns.email.type).toBe('text');
   });
+
+  it('creates ALTER COLUMN SET NOT NULL migration when column nullability changes', async () => {
+    const schemaForgeDir = path.join(tempDir, 'schemaforge');
+    const outputDir = path.join(tempDir, 'migrations');
+
+    await fs.mkdir(schemaForgeDir, { recursive: true });
+
+    const schemaPath = path.join(schemaForgeDir, 'schema.sf');
+    const configPath = path.join(schemaForgeDir, 'config.json');
+    const statePath = path.join(schemaForgeDir, 'state.json');
+
+    await fs.writeFile(
+      schemaPath,
+      `table users {\n  id uuid pk\n  email text not null\n}\n`,
+      'utf-8'
+    );
+
+    await fs.writeFile(
+      configPath,
+      JSON.stringify(
+        {
+          outputDir: 'migrations',
+          schemaFile: 'schemaforge/schema.sf',
+          stateFile: 'schemaforge/state.json',
+        },
+        null,
+        2
+      ),
+      'utf-8'
+    );
+
+    await fs.writeFile(
+      statePath,
+      JSON.stringify(
+        {
+          version: 1,
+          tables: {
+            users: {
+              columns: {
+                id: { type: 'uuid', primaryKey: true, nullable: true },
+                email: { type: 'text', nullable: true },
+              },
+            },
+          },
+        },
+        null,
+        2
+      ),
+      'utf-8'
+    );
+
+    const logSpy = vi.spyOn(console, 'log').mockImplementation(() => { });
+
+    await runGenerate({ name: 'Alter Email Nullability' });
+
+    logSpy.mockRestore();
+
+    const migrationFiles = await fs.readdir(outputDir);
+    expect(migrationFiles).toHaveLength(1);
+
+    const migrationContents = await fs.readFile(
+      path.join(outputDir, migrationFiles[0]),
+      'utf-8'
+    );
+    expect(migrationContents).toContain(
+      'ALTER TABLE users ALTER COLUMN email SET NOT NULL;'
+    );
+
+    const state = await readJson<{
+      tables: { users: { columns: { email: { nullable: boolean } } } };
+    }>(statePath);
+    expect(state.tables.users.columns.email.nullable).toBe(false);
+  });
+
+  it('creates ALTER COLUMN DROP NOT NULL migration when column nullability changes', async () => {
+    const schemaForgeDir = path.join(tempDir, 'schemaforge');
+    const outputDir = path.join(tempDir, 'migrations');
+
+    await fs.mkdir(schemaForgeDir, { recursive: true });
+
+    const schemaPath = path.join(schemaForgeDir, 'schema.sf');
+    const configPath = path.join(schemaForgeDir, 'config.json');
+    const statePath = path.join(schemaForgeDir, 'state.json');
+
+    await fs.writeFile(
+      schemaPath,
+      `table users {\n  id uuid pk\n  email text\n}\n`,
+      'utf-8'
+    );
+
+    await fs.writeFile(
+      configPath,
+      JSON.stringify(
+        {
+          outputDir: 'migrations',
+          schemaFile: 'schemaforge/schema.sf',
+          stateFile: 'schemaforge/state.json',
+        },
+        null,
+        2
+      ),
+      'utf-8'
+    );
+
+    await fs.writeFile(
+      statePath,
+      JSON.stringify(
+        {
+          version: 1,
+          tables: {
+            users: {
+              columns: {
+                id: { type: 'uuid', primaryKey: true, nullable: true },
+                email: { type: 'text', nullable: false },
+              },
+            },
+          },
+        },
+        null,
+        2
+      ),
+      'utf-8'
+    );
+
+    const logSpy = vi.spyOn(console, 'log').mockImplementation(() => { });
+
+    await runGenerate({ name: 'Alter Email Drop Not Null' });
+
+    logSpy.mockRestore();
+
+    const migrationFiles = await fs.readdir(outputDir);
+    expect(migrationFiles).toHaveLength(1);
+
+    const migrationContents = await fs.readFile(
+      path.join(outputDir, migrationFiles[0]),
+      'utf-8'
+    );
+    expect(migrationContents).toContain(
+      'ALTER TABLE users ALTER COLUMN email DROP NOT NULL;'
+    );
+
+    const state = await readJson<{
+      tables: { users: { columns: { email: { nullable: boolean } } } };
+    }>(statePath);
+    expect(state.tables.users.columns.email.nullable).toBe(true);
+  });
 });
