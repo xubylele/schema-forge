@@ -129,6 +129,7 @@ export const defaultParser = new SchemaParser();
  * Supported modifiers:
  * - pk (primary key)
  * - unique
+ * - not null
  * - nullable
  * - default <value>
  * - fk <table>.<column> (e.g., fk users.id)
@@ -213,7 +214,8 @@ export function parseSchema(source: string): DatabaseSchema {
 
     const column: Column = {
       name: colName,
-      type: colType as ColumnType
+      type: colType as ColumnType,
+      nullable: true
     };
 
     // Parse modifiers
@@ -235,6 +237,14 @@ export function parseSchema(source: string): DatabaseSchema {
         case 'nullable':
           column.nullable = true;
           i++;
+          break;
+
+        case 'not':
+          if (tokens[i + 1] !== 'null') {
+            throw new Error(`Line ${lineNum}: Unknown modifier 'not'`);
+          }
+          column.nullable = false;
+          i += 2;
           break;
 
         case 'default':

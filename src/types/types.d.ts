@@ -82,6 +82,13 @@ export type Operation =
     fromType: ColumnType;
     toType: ColumnType;
   }
+  | {
+    kind: 'column_nullability_changed';
+    tableName: string;
+    columnName: string;
+    from: boolean;
+    to: boolean;
+  }
   | { kind: 'add_column'; tableName: string; column: Column }
   | { kind: 'drop_column'; tableName: string; columnName: string };
 
