@@ -40,6 +40,12 @@ function generateOperation(
         operation.columnName,
         operation.toType
       );
+    case 'column_nullability_changed':
+      return generateAlterColumnNullability(
+        operation.tableName,
+        operation.columnName,
+        operation.to
+      );
     case 'add_column':
       return generateAddColumn(operation.tableName, operation.column, provider, sqlConfig);
     case 'column_default_changed':
@@ -152,4 +158,16 @@ function generateAlterColumnDefault(
   }
 
   return `ALTER TABLE ${tableName} ALTER COLUMN ${columnName} SET DEFAULT ${newDefault};`;
+}
+
+function generateAlterColumnNullability(
+  tableName: string,
+  columnName: string,
+  toNullable: boolean
+): string {
+  if (toNullable) {
+    return `ALTER TABLE ${tableName} ALTER COLUMN ${columnName} DROP NOT NULL;`;
+  }
+
+  return `ALTER TABLE ${tableName} ALTER COLUMN ${columnName} SET NOT NULL;`;
 }

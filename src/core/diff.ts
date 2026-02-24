@@ -52,6 +52,10 @@ function normalizeColumnType(type: string): string {
     .replace(/\s*\)\s*/g, ')');
 }
 
+function normalizeNullable(nullable?: boolean): boolean {
+  return nullable ?? true;
+}
+
 /**
  * Compare a persisted state and a new schema, generating ordered operations.
  */
@@ -108,7 +112,37 @@ export function diffSchemas(oldState: StateFile, newSchema: DatabaseSchema): Dif
     }
   }
 
-  // Phase 2.5: detect column default changes in schema order
+  // Phase 3: detect column nullability changes in schema order
+  for (const tableName of commonTableNames) {
+    const newTable = newSchema.tables[tableName];
+    const oldTable = oldState.tables[tableName];
+
+    if (!newTable || !oldTable) {
+      continue;
+    }
+
+    for (const column of newTable.columns) {
+      const previousColumn = oldTable.columns[column.name];
+      if (!previousColumn) {
+        continue;
+      }
+
+      const previousNullable = normalizeNullable(previousColumn.nullable);
+      const currentNullable = normalizeNullable(column.nullable);
+
+      if (previousNullable !== currentNullable) {
+        operations.push({
+          kind: 'column_nullability_changed',
+          tableName,
+          columnName: column.name,
+          from: previousNullable,
+          to: currentNullable,
+        });
+      }
+    }
+  }
+
+  // Phase 4: detect column default changes in schema order
   for (const tableName of commonTableNames) {
     const newTable = newSchema.tables[tableName];
     const oldTable = oldState.tables[tableName];
@@ -138,7 +172,7 @@ export function diffSchemas(oldState: StateFile, newSchema: DatabaseSchema): Dif
     }
   }
 
-  // Phase 3: add columns in schema order
+  // Phase 5: add columns in schema order
   for (const tableName of commonTableNames) {
     const newTable = newSchema.tables[tableName];
     const oldTable = oldState.tables[tableName];
@@ -160,7 +194,7 @@ export function diffSchemas(oldState: StateFile, newSchema: DatabaseSchema): Dif
     }
   }
 
-  // Phase 4: drop columns in state key order
+  // Phase 6: drop columns in state key order
   for (const tableName of commonTableNames) {
     const newTable = newSchema.tables[tableName];
     const oldTable = oldState.tables[tableName];
@@ -182,7 +216,7 @@ export function diffSchemas(oldState: StateFile, newSchema: DatabaseSchema): Dif
     }
   }
 
-  // Phase 5: drop tables (A-Z)
+  // Phase 7: drop tables (A-Z)
   for (const tableName of sortedOldTableNames) {
     if (!newTableNames.has(tableName)) {
       operations.push({
