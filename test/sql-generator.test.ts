@@ -110,6 +110,26 @@ describe('SQL Generator', () => {
       );
     });
 
+    it('should generate set default statement when default is added or modified', () => {
+      const diff: DiffResult = {
+        operations: [
+          {
+            kind: 'column_default_changed',
+            tableName: 'users',
+            columnName: 'created_at',
+            fromDefault: 'now()',
+            toDefault: "timezone('utc', now())",
+          },
+        ],
+      };
+
+      const result = generateSql(diff, 'postgres');
+
+      expect(result).toBe(
+        "ALTER TABLE users ALTER COLUMN created_at SET DEFAULT timezone('utc', now());"
+      );
+    });
+
     it('should generate alter column set not null statement', () => {
       const diff: DiffResult = {
         operations: [
@@ -125,6 +145,26 @@ describe('SQL Generator', () => {
 
       const result = generateSql(diff, 'postgres');
       expect(result).toBe('ALTER TABLE users ALTER COLUMN email SET NOT NULL;');
+    });
+
+    it('should generate drop default statement when default is removed', () => {
+      const diff: DiffResult = {
+        operations: [
+          {
+            kind: 'column_default_changed',
+            tableName: 'users',
+            columnName: 'created_at',
+            fromDefault: 'now()',
+            toDefault: null,
+          },
+        ],
+      };
+
+      const result = generateSql(diff, 'postgres');
+
+      expect(result).toBe(
+        'ALTER TABLE users ALTER COLUMN created_at DROP DEFAULT;'
+      );
     });
 
     it('should generate alter column drop not null statement', () => {

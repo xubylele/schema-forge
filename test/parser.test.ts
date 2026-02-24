@@ -106,6 +106,20 @@ describe('parseSchema', () => {
     expect(result.tables.posts.columns[3].default).toBe('now()');
   });
 
+  it('should parse default expressions that contain spaces', () => {
+    const source = `
+      table sessions {
+        expires_at timestamptz default timezone('utc', now())
+        ttl text default interval '1 day'
+      }
+    `;
+
+    const result = parseSchema(source);
+
+    expect(result.tables.sessions.columns[0].default).toBe("timezone('utc', now())");
+    expect(result.tables.sessions.columns[1].default).toBe("interval '1 day'");
+  });
+
   it('should parse foreign key modifier', () => {
     const source = `
       table posts {

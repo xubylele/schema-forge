@@ -48,6 +48,12 @@ function generateOperation(
       );
     case 'add_column':
       return generateAddColumn(operation.tableName, operation.column, provider, sqlConfig);
+    case 'column_default_changed':
+      return generateAlterColumnDefault(
+        operation.tableName,
+        operation.columnName,
+        operation.toDefault
+      );
     case 'drop_column':
       return generateDropColumn(operation.tableName, operation.columnName);
   }
@@ -140,6 +146,18 @@ function generateAlterColumnType(
   newType: string
 ): string {
   return `ALTER TABLE ${tableName} ALTER COLUMN ${columnName} TYPE ${newType} USING ${columnName}::${newType};`;
+}
+
+function generateAlterColumnDefault(
+  tableName: string,
+  columnName: string,
+  newDefault: string | null
+): string {
+  if (newDefault === null) {
+    return `ALTER TABLE ${tableName} ALTER COLUMN ${columnName} DROP DEFAULT;`;
+  }
+
+  return `ALTER TABLE ${tableName} ALTER COLUMN ${columnName} SET DEFAULT ${newDefault};`;
 }
 
 function generateAlterColumnNullability(

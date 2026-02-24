@@ -33,7 +33,7 @@ export interface Column {
   primaryKey?: boolean;
   unique?: boolean;
   nullable?: boolean;
-  default?: string;
+  default?: string | null;
   foreignKey?: ForeignKey;
 }
 
@@ -55,7 +55,7 @@ export interface StateColumn {
   primaryKey?: boolean;
   unique?: boolean;
   nullable?: boolean;
-  default?: string;
+  default?: string | null;
   foreignKey?: ForeignKey;
 }
 
@@ -90,6 +90,13 @@ export type Operation =
     to: boolean;
   }
   | { kind: 'add_column'; tableName: string; column: Column }
+  | {
+    kind: 'column_default_changed';
+    tableName: string;
+    columnName: string;
+    fromDefault: string | null;
+    toDefault: string | null;
+  }
   | { kind: 'drop_column'; tableName: string; columnName: string };
 
 export interface DiffResult {

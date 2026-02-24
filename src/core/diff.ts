@@ -6,6 +6,7 @@ import {
   StateColumn,
   StateFile,
 } from '../types/types';
+import { normalizeDefault } from './normalize';
 
 /**
  * Extract table names from a stored state file.
@@ -141,7 +142,37 @@ export function diffSchemas(oldState: StateFile, newSchema: DatabaseSchema): Dif
     }
   }
 
-  // Phase 4: add columns in schema order
+  // Phase 4: detect column default changes in schema order
+  for (const tableName of commonTableNames) {
+    const newTable = newSchema.tables[tableName];
+    const oldTable = oldState.tables[tableName];
+
+    if (!newTable || !oldTable) {
+      continue;
+    }
+
+    for (const column of newTable.columns) {
+      const previousColumn = oldTable.columns[column.name];
+      if (!previousColumn) {
+        continue;
+      }
+
+      const previousDefault = normalizeDefault(previousColumn.default);
+      const currentDefault = normalizeDefault(column.default);
+
+      if (previousDefault !== currentDefault) {
+        operations.push({
+          kind: 'column_default_changed',
+          tableName,
+          columnName: column.name,
+          fromDefault: previousDefault,
+          toDefault: currentDefault,
+        });
+      }
+    }
+  }
+
+  // Phase 5: add columns in schema order
   for (const tableName of commonTableNames) {
     const newTable = newSchema.tables[tableName];
     const oldTable = oldState.tables[tableName];
@@ -163,7 +194,7 @@ export function diffSchemas(oldState: StateFile, newSchema: DatabaseSchema): Dif
     }
   }
 
-  // Phase 5: drop columns in state key order
+  // Phase 6: drop columns in state key order
   for (const tableName of commonTableNames) {
     const newTable = newSchema.tables[tableName];
     const oldTable = oldState.tables[tableName];
@@ -185,7 +216,7 @@ export function diffSchemas(oldState: StateFile, newSchema: DatabaseSchema): Dif
     }
   }
 
-  // Phase 6: drop tables (A-Z)
+  // Phase 7: drop tables (A-Z)
   for (const tableName of sortedOldTableNames) {
     if (!newTableNames.has(tableName)) {
       operations.push({
