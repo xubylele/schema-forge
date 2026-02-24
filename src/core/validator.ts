@@ -241,7 +241,32 @@ export const defaultValidator = new SchemaValidator();
 /**
  * Tipos de columna válidos para la base de datos
  */
-const VALID_COLUMN_TYPES: ColumnType[] = ['uuid', 'varchar', 'text', 'int', 'boolean', 'timestamptz', 'date'];
+const VALID_BASE_COLUMN_TYPES: ColumnType[] = [
+  'uuid',
+  'varchar',
+  'text',
+  'int',
+  'bigint',
+  'boolean',
+  'timestamptz',
+  'date',
+];
+
+function isValidColumnType(type: string): boolean {
+  const normalizedType = type
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, ' ')
+    .replace(/\s*\(\s*/g, '(')
+    .replace(/\s*,\s*/g, ',')
+    .replace(/\s*\)\s*/g, ')');
+
+  if (VALID_BASE_COLUMN_TYPES.includes(normalizedType as ColumnType)) {
+    return true;
+  }
+
+  return /^varchar\(\d+\)$/.test(normalizedType) || /^numeric\(\d+,\d+\)$/.test(normalizedType);
+}
 
 /**
  * Valida una estructura de DatabaseSchema y lanza un Error si hay validaciones fallidas
@@ -310,9 +335,9 @@ function validateTableColumns(tableName: string, table: Table, allTables: Record
     }
 
     // Validar tipo de columna
-    if (!VALID_COLUMN_TYPES.includes(column.type)) {
+    if (!isValidColumnType(column.type)) {
       throw new Error(
-        `Tabla '${tableName}', columna '${column.name}': tipo '${column.type}' no es válido. Tipos soportados: ${VALID_COLUMN_TYPES.join(', ')}`
+        `Tabla '${tableName}', columna '${column.name}': tipo '${column.type}' no es válido. Tipos soportados: ${VALID_BASE_COLUMN_TYPES.join(', ')}, varchar(n), numeric(p,s)`
       );
     }
 

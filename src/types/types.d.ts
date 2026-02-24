@@ -9,8 +9,11 @@
 export type ColumnType =
   | 'uuid'
   | 'varchar'
+  | `varchar(${number})`
   | 'text'
   | 'int'
+  | 'bigint'
+  | `numeric(${number},${number})`
   | 'boolean'
   | 'timestamptz'
   | 'date';
@@ -72,6 +75,13 @@ export interface StateFile {
 export type Operation =
   | { kind: 'create_table'; table: Table }
   | { kind: 'drop_table'; tableName: string }
+  | {
+    kind: 'column_type_changed';
+    tableName: string;
+    columnName: string;
+    fromType: ColumnType;
+    toType: ColumnType;
+  }
   | { kind: 'add_column'; tableName: string; column: Column }
   | { kind: 'drop_column'; tableName: string; columnName: string };
 

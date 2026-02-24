@@ -41,6 +41,16 @@ function getSortedNames(names: Set<string>): string[] {
   return Array.from(names).sort((a, b) => a.localeCompare(b));
 }
 
+function normalizeColumnType(type: string): string {
+  return type
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, ' ')
+    .replace(/\s*\(\s*/g, '(')
+    .replace(/\s*,\s*/g, ',')
+    .replace(/\s*\)\s*/g, ')');
+}
+
 /**
  * Compare a persisted state and a new schema, generating ordered operations.
  */
@@ -67,7 +77,37 @@ export function diffSchemas(oldState: StateFile, newSchema: DatabaseSchema): Dif
     oldTableNames.has(tableName)
   );
 
-  // Phase 2: add columns in schema order
+  // Phase 2: detect column type changes in schema order
+  for (const tableName of commonTableNames) {
+    const newTable = newSchema.tables[tableName];
+    const oldTable = oldState.tables[tableName];
+
+    if (!newTable || !oldTable) {
+      continue;
+    }
+
+    for (const column of newTable.columns) {
+      const previousColumn = oldTable.columns[column.name];
+      if (!previousColumn) {
+        continue;
+      }
+
+      const previousType = normalizeColumnType(previousColumn.type);
+      const currentType = normalizeColumnType(column.type);
+
+      if (previousType !== currentType) {
+        operations.push({
+          kind: 'column_type_changed',
+          tableName,
+          columnName: column.name,
+          fromType: previousColumn.type,
+          toType: column.type,
+        });
+      }
+    }
+  }
+
+  // Phase 3: add columns in schema order
   for (const tableName of commonTableNames) {
     const newTable = newSchema.tables[tableName];
     const oldTable = oldState.tables[tableName];
@@ -89,7 +129,7 @@ export function diffSchemas(oldState: StateFile, newSchema: DatabaseSchema): Dif
     }
   }
 
-  // Phase 3: drop columns in state key order
+  // Phase 4: drop columns in state key order
   for (const tableName of commonTableNames) {
     const newTable = newSchema.tables[tableName];
     const oldTable = oldState.tables[tableName];
@@ -111,7 +151,7 @@ export function diffSchemas(oldState: StateFile, newSchema: DatabaseSchema): Dif
     }
   }
 
-  // Phase 4: drop tables (A-Z)
+  // Phase 5: drop tables (A-Z)
   for (const tableName of sortedOldTableNames) {
     if (!newTableNames.has(tableName)) {
       operations.push({

@@ -152,7 +152,18 @@ describe('validateSchema', () => {
   });
 
   it('should validate all valid column types', () => {
-    const validTypes = ['uuid', 'varchar', 'text', 'int', 'boolean', 'timestamptz', 'date'];
+    const validTypes = [
+      'uuid',
+      'varchar',
+      'text',
+      'int',
+      'bigint',
+      'boolean',
+      'timestamptz',
+      'date',
+      'varchar(255)',
+      'numeric(10,2)',
+    ];
 
     const schema: DatabaseSchema = {
       tables: {

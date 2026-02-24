@@ -212,17 +212,29 @@ describe('parseSchema', () => {
         col2 varchar
         col3 text
         col4 int
-        col5 boolean
-        col6 timestamptz
-        col7 date
+        col5 bigint
+        col6 boolean
+        col7 timestamptz
+        col8 date
+        col9 varchar(255)
+        col10 numeric(10,2)
       }
     `;
 
     const result = parseSchema(source);
 
-    expect(result.tables.test.columns).toHaveLength(7);
+    expect(result.tables.test.columns).toHaveLength(10);
     expect(result.tables.test.columns.map(c => c.type)).toEqual([
-      'uuid', 'varchar', 'text', 'int', 'boolean', 'timestamptz', 'date'
+      'uuid',
+      'varchar',
+      'text',
+      'int',
+      'bigint',
+      'boolean',
+      'timestamptz',
+      'date',
+      'varchar(255)',
+      'numeric(10,2)',
     ]);
   });
 
