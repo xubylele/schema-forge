@@ -146,4 +146,77 @@ describe('runGenerate integration', () => {
     }>(statePath);
     expect(state.tables.users.columns.email.type).toBe('text');
   });
+
+  it('creates ALTER COLUMN DEFAULT migration when a default changes', async () => {
+    const schemaForgeDir = path.join(tempDir, 'schemaforge');
+    const outputDir = path.join(tempDir, 'migrations');
+
+    await fs.mkdir(schemaForgeDir, { recursive: true });
+
+    const schemaPath = path.join(schemaForgeDir, 'schema.sf');
+    const configPath = path.join(schemaForgeDir, 'config.json');
+    const statePath = path.join(schemaForgeDir, 'state.json');
+
+    await fs.writeFile(
+      schemaPath,
+      `table users {\n  id uuid pk\n  created_at timestamptz default now()\n}\n`,
+      'utf-8'
+    );
+
+    await fs.writeFile(
+      configPath,
+      JSON.stringify(
+        {
+          outputDir: 'migrations',
+          schemaFile: 'schemaforge/schema.sf',
+          stateFile: 'schemaforge/state.json',
+        },
+        null,
+        2
+      ),
+      'utf-8'
+    );
+
+    await fs.writeFile(
+      statePath,
+      JSON.stringify(
+        {
+          version: 1,
+          tables: {
+            users: {
+              columns: {
+                id: { type: 'uuid', primaryKey: true },
+                created_at: { type: 'timestamptz' },
+              },
+            },
+          },
+        },
+        null,
+        2
+      ),
+      'utf-8'
+    );
+
+    const logSpy = vi.spyOn(console, 'log').mockImplementation(() => { });
+
+    await runGenerate({ name: 'Set Default Created At' });
+
+    logSpy.mockRestore();
+
+    const migrationFiles = await fs.readdir(outputDir);
+    expect(migrationFiles).toHaveLength(1);
+
+    const migrationContents = await fs.readFile(
+      path.join(outputDir, migrationFiles[0]),
+      'utf-8'
+    );
+    expect(migrationContents).toContain(
+      'ALTER TABLE users ALTER COLUMN created_at SET DEFAULT now();'
+    );
+
+    const state = await readJson<{
+      tables: { users: { columns: { created_at: { default?: string } } } };
+    }>(statePath);
+    expect(state.tables.users.columns.created_at.default).toBe('now()');
+  });
 });

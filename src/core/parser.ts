@@ -197,6 +197,7 @@ export function parseSchema(source: string): DatabaseSchema {
    */
   function parseColumn(line: string, lineNum: number): Column {
     const tokens = line.split(/\s+/).filter(t => t.length > 0);
+    const modifiers = new Set(['pk', 'unique', 'nullable', 'default', 'fk']);
 
     if (tokens.length < 2) {
       throw new Error(`Line ${lineNum}: Invalid column definition. Expected: <name> <type> [modifiers...]`);
@@ -242,8 +243,20 @@ export function parseSchema(source: string): DatabaseSchema {
           if (i >= tokens.length) {
             throw new Error(`Line ${lineNum}: 'default' modifier requires a value`);
           }
-          column.default = tokens[i];
-          i++;
+          {
+            const defaultTokens: string[] = [];
+
+            while (i < tokens.length && !modifiers.has(tokens[i])) {
+              defaultTokens.push(tokens[i]);
+              i++;
+            }
+
+            if (defaultTokens.length === 0) {
+              throw new Error(`Line ${lineNum}: 'default' modifier requires a value`);
+            }
+
+            column.default = defaultTokens.join(' ');
+          }
           break;
 
         case 'fk':

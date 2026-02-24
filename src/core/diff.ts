@@ -6,6 +6,7 @@ import {
   StateColumn,
   StateFile,
 } from '../types/types';
+import { normalizeDefault } from './normalize';
 
 /**
  * Extract table names from a stored state file.
@@ -102,6 +103,36 @@ export function diffSchemas(oldState: StateFile, newSchema: DatabaseSchema): Dif
           columnName: column.name,
           fromType: previousColumn.type,
           toType: column.type,
+        });
+      }
+    }
+  }
+
+  // Phase 2.5: detect column default changes in schema order
+  for (const tableName of commonTableNames) {
+    const newTable = newSchema.tables[tableName];
+    const oldTable = oldState.tables[tableName];
+
+    if (!newTable || !oldTable) {
+      continue;
+    }
+
+    for (const column of newTable.columns) {
+      const previousColumn = oldTable.columns[column.name];
+      if (!previousColumn) {
+        continue;
+      }
+
+      const previousDefault = normalizeDefault(previousColumn.default);
+      const currentDefault = normalizeDefault(column.default);
+
+      if (previousDefault !== currentDefault) {
+        operations.push({
+          kind: 'column_default_changed',
+          tableName,
+          columnName: column.name,
+          fromDefault: previousDefault,
+          toDefault: currentDefault,
         });
       }
     }
