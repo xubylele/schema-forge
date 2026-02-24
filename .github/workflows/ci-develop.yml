@@ -7,7 +7,7 @@ on:
 
 jobs:
   test:
-    name: Test
+    name: Test develop branch
     runs-on: ubuntu-latest
 
     steps:
