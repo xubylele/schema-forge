@@ -61,7 +61,7 @@ describe('validateSchema', () => {
     };
 
     expect(() => validateSchema(schema)).toThrow(
-      "Tabla 'users': columna duplicada 'email'"
+      "Table 'users': duplicate column 'email'"
     );
   });
 
@@ -79,7 +79,7 @@ describe('validateSchema', () => {
     };
 
     expect(() => validateSchema(schema)).toThrow(
-      "Tabla 'users': solo puede tener una primary key (encontradas 2)"
+      "Table 'users': can only have one primary key (found 2)"
     );
   });
 
@@ -97,7 +97,7 @@ describe('validateSchema', () => {
     };
 
     expect(() => validateSchema(schema)).toThrow(
-      /tipo 'invalid_type' no es válido/
+      /type 'invalid_type' is not valid/
     );
   });
 
@@ -119,7 +119,7 @@ describe('validateSchema', () => {
     };
 
     expect(() => validateSchema(schema)).toThrow(
-      "tabla referenciada 'nonexistent_table' no existe"
+      "referenced table 'nonexistent_table' does not exist"
     );
   });
 
@@ -147,12 +147,23 @@ describe('validateSchema', () => {
     };
 
     expect(() => validateSchema(schema)).toThrow(
-      "tabla 'users' no tiene columna 'nonexistent_column'"
+      "table 'users' does not have column 'nonexistent_column'"
     );
   });
 
   it('should validate all valid column types', () => {
-    const validTypes = ['uuid', 'varchar', 'text', 'int', 'boolean', 'timestamptz', 'date'];
+    const validTypes = [
+      'uuid',
+      'varchar',
+      'text',
+      'int',
+      'bigint',
+      'boolean',
+      'timestamptz',
+      'date',
+      'varchar(255)',
+      'numeric(10,2)',
+    ];
 
     const schema: DatabaseSchema = {
       tables: {
@@ -238,7 +249,7 @@ describe('validateSchema', () => {
     };
 
     expect(() => validateSchema(schema)).toThrow(
-      /tipo 'bad_type' no es válido/
+      /type 'bad_type' is not valid/
     );
   });
 

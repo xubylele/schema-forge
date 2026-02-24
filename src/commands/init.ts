@@ -57,7 +57,7 @@ table users {
 }
 `;
   await writeTextFile(schemaFilePath, schemaContent);
-  console.log(`✓ Created ${schemaFilePath}`);
+  console.log(`[OK] Created ${schemaFilePath}`);
 
   // Create config.json
   const config = {
@@ -71,7 +71,7 @@ table users {
     }
   };
   await writeJsonFile(configPath, config);
-  console.log(`✓ Created ${configPath}`);
+  console.log(`[OK] Created ${configPath}`);
 
   // Create state.json
   const state = {
@@ -79,14 +79,14 @@ table users {
     tables: {}
   };
   await writeJsonFile(statePath, state);
-  console.log(`✓ Created ${statePath}`);
+  console.log(`[OK] Created ${statePath}`);
 
   // Create output directory if it doesn't exist
   const outputDir = 'supabase/migrations';
   await ensureDir(outputDir);
-  console.log(`✓ Created ${outputDir}`);
+  console.log(`[OK] Created ${outputDir}`);
 
-  console.log('\n✓ Project initialized successfully');
+  console.log('\n[OK] Project initialized successfully');
   console.log('Next steps:');
   console.log('  1. Edit schemaforge/schema.sf to define your schema');
   console.log('  2. Run: schemaforge generate');
