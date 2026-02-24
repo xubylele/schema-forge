@@ -129,6 +129,7 @@ export const defaultParser = new SchemaParser();
  * Supported modifiers:
  * - pk (primary key)
  * - unique
+ * - not null
  * - nullable
  * - default <value>
  * - fk <table>.<column> (e.g., fk users.id)
@@ -197,6 +198,7 @@ export function parseSchema(source: string): DatabaseSchema {
    */
   function parseColumn(line: string, lineNum: number): Column {
     const tokens = line.split(/\s+/).filter(t => t.length > 0);
+    const modifiers = new Set(['pk', 'unique', 'nullable', 'default', 'fk']);
 
     if (tokens.length < 2) {
       throw new Error(`Line ${lineNum}: Invalid column definition. Expected: <name> <type> [modifiers...]`);
@@ -213,7 +215,8 @@ export function parseSchema(source: string): DatabaseSchema {
 
     const column: Column = {
       name: colName,
-      type: colType as ColumnType
+      type: colType as ColumnType,
+      nullable: true
     };
 
     // Parse modifiers
@@ -237,13 +240,33 @@ export function parseSchema(source: string): DatabaseSchema {
           i++;
           break;
 
+        case 'not':
+          if (tokens[i + 1] !== 'null') {
+            throw new Error(`Line ${lineNum}: Unknown modifier 'not'`);
+          }
+          column.nullable = false;
+          i += 2;
+          break;
+
         case 'default':
           i++;
           if (i >= tokens.length) {
             throw new Error(`Line ${lineNum}: 'default' modifier requires a value`);
           }
-          column.default = tokens[i];
-          i++;
+          {
+            const defaultTokens: string[] = [];
+
+            while (i < tokens.length && !modifiers.has(tokens[i])) {
+              defaultTokens.push(tokens[i]);
+              i++;
+            }
+
+            if (defaultTokens.length === 0) {
+              throw new Error(`Line ${lineNum}: 'default' modifier requires a value`);
+            }
+
+            column.default = defaultTokens.join(' ');
+          }
           break;
 
         case 'fk':
@@ -313,9 +336,12 @@ export function parseSchema(source: string): DatabaseSchema {
       throw new Error(`Line ${startLine + 1}: Table '${tableName}' block not closed (missing '}')`);
     }
 
+    const primaryKeyColumn = columns.find(column => column.primaryKey)?.name ?? null;
+
     tables[tableName] = {
       name: tableName,
-      columns
+      columns,
+      ...(primaryKeyColumn !== null && { primaryKey: primaryKeyColumn }),
     };
 
     return lineIdx;

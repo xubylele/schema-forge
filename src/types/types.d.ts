@@ -33,13 +33,14 @@ export interface Column {
   primaryKey?: boolean;
   unique?: boolean;
   nullable?: boolean;
-  default?: string;
+  default?: string | null;
   foreignKey?: ForeignKey;
 }
 
 export interface Table {
   name: string;
   columns: Column[];
+  primaryKey?: string | null;
 }
 
 export interface DatabaseSchema {
@@ -55,12 +56,13 @@ export interface StateColumn {
   primaryKey?: boolean;
   unique?: boolean;
   nullable?: boolean;
-  default?: string;
+  default?: string | null;
   foreignKey?: ForeignKey;
 }
 
 export interface StateTable {
   columns: Record<string, StateColumn>;
+  primaryKey?: string | null;
 }
 
 export interface StateFile {
@@ -82,8 +84,35 @@ export type Operation =
     fromType: ColumnType;
     toType: ColumnType;
   }
+  | {
+    kind: 'column_nullability_changed';
+    tableName: string;
+    columnName: string;
+    from: boolean;
+    to: boolean;
+  }
   | { kind: 'add_column'; tableName: string; column: Column }
-  | { kind: 'drop_column'; tableName: string; columnName: string };
+  | {
+    kind: 'column_default_changed';
+    tableName: string;
+    columnName: string;
+    fromDefault: string | null;
+    toDefault: string | null;
+  }
+  | { kind: 'drop_column'; tableName: string; columnName: string }
+  | {
+    kind: 'column_unique_changed';
+    tableName: string;
+    columnName: string;
+    from: boolean;
+    to: boolean;
+  }
+  | { kind: 'drop_primary_key_constraint'; tableName: string }
+  | {
+    kind: 'add_primary_key_constraint';
+    tableName: string;
+    columnName: string;
+  };
 
 export interface DiffResult {
   operations: Operation[];

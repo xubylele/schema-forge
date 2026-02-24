@@ -1,4 +1,5 @@
 import { Column, DiffResult, Operation, Table } from '../types/types';
+import { legacyPkName, legacyUqName, pkName, uqName } from '../core/normalize';
 
 export type Provider = 'supabase' | 'postgres';
 
@@ -40,10 +41,30 @@ function generateOperation(
         operation.columnName,
         operation.toType
       );
+    case 'column_nullability_changed':
+      return generateAlterColumnNullability(
+        operation.tableName,
+        operation.columnName,
+        operation.to
+      );
     case 'add_column':
       return generateAddColumn(operation.tableName, operation.column, provider, sqlConfig);
+    case 'column_default_changed':
+      return generateAlterColumnDefault(
+        operation.tableName,
+        operation.columnName,
+        operation.toDefault
+      );
     case 'drop_column':
       return generateDropColumn(operation.tableName, operation.columnName);
+    case 'column_unique_changed':
+      return operation.to
+        ? generateAddUniqueConstraint(operation.tableName, operation.columnName)
+        : generateDropUniqueConstraint(operation.tableName, operation.columnName);
+    case 'drop_primary_key_constraint':
+      return generateDropPrimaryKeyConstraint(operation.tableName);
+    case 'add_primary_key_constraint':
+      return generateAddPrimaryKeyConstraint(operation.tableName, operation.columnName);
   }
 }
 
@@ -134,4 +155,59 @@ function generateAlterColumnType(
   newType: string
 ): string {
   return `ALTER TABLE ${tableName} ALTER COLUMN ${columnName} TYPE ${newType} USING ${columnName}::${newType};`;
+}
+
+function generateAddUniqueConstraint(tableName: string, columnName: string): string {
+  const deterministicConstraintName = uqName(tableName, columnName);
+  return `ALTER TABLE ${tableName} ADD CONSTRAINT ${deterministicConstraintName} UNIQUE (${columnName});`;
+}
+
+function generateDropUniqueConstraint(tableName: string, columnName: string): string {
+  const deterministicConstraintName = uqName(tableName, columnName);
+  const fallbackConstraintName = legacyUqName(tableName, columnName);
+  return generateDropConstraintStatements(tableName, [deterministicConstraintName, fallbackConstraintName]);
+}
+
+function generateDropPrimaryKeyConstraint(tableName: string): string {
+  const deterministicConstraintName = pkName(tableName);
+  const fallbackConstraintName = legacyPkName(tableName);
+  return generateDropConstraintStatements(tableName, [deterministicConstraintName, fallbackConstraintName]);
+}
+
+function generateAddPrimaryKeyConstraint(tableName: string, columnName: string): string {
+  const deterministicConstraintName = pkName(tableName);
+  return `ALTER TABLE ${tableName} ADD CONSTRAINT ${deterministicConstraintName} PRIMARY KEY (${columnName});`;
+}
+
+function generateDropConstraintStatements(tableName: string, constraintNames: string[]): string {
+  const uniqueConstraintNames = Array.from(new Set(constraintNames));
+  return uniqueConstraintNames
+    .map(constraintName =>
+      `ALTER TABLE ${tableName} DROP CONSTRAINT IF EXISTS ${constraintName};`
+    )
+    .join('\n');
+}
+
+function generateAlterColumnDefault(
+  tableName: string,
+  columnName: string,
+  newDefault: string | null
+): string {
+  if (newDefault === null) {
+    return `ALTER TABLE ${tableName} ALTER COLUMN ${columnName} DROP DEFAULT;`;
+  }
+
+  return `ALTER TABLE ${tableName} ALTER COLUMN ${columnName} SET DEFAULT ${newDefault};`;
+}
+
+function generateAlterColumnNullability(
+  tableName: string,
+  columnName: string,
+  toNullable: boolean
+): string {
+  if (toNullable) {
+    return `ALTER TABLE ${tableName} ALTER COLUMN ${columnName} DROP NOT NULL;`;
+  }
+
+  return `ALTER TABLE ${tableName} ALTER COLUMN ${columnName} SET NOT NULL;`;
 }

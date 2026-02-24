@@ -4,7 +4,9 @@ import { Command } from 'commander';
 import pkg from '../package.json';
 import { runDiff } from './commands/diff';
 import { runGenerate } from './commands/generate';
+import { runImport } from './commands/import';
 import { runInit } from './commands/init';
+import { runValidate } from './commands/validate';
 import { SchemaValidationError } from './core/errors';
 import { error as printError } from './utils/output';
 
@@ -61,6 +63,31 @@ program
   .action(async () => {
     try {
       await runDiff();
+    } catch (error) {
+      handleError(error);
+    }
+  });
+
+program
+  .command('import')
+  .description('Import schema from SQL migrations')
+  .argument('<path>', 'Path to .sql file or migrations directory')
+  .option('--out <path>', 'Output schema file path')
+  .action(async (targetPath, options) => {
+    try {
+      await runImport(targetPath, options);
+    } catch (error) {
+      handleError(error);
+    }
+  });
+
+program
+  .command('validate')
+  .description('Detect destructive or risky schema changes')
+  .option('--json', 'Output structured JSON')
+  .action(async (options) => {
+    try {
+      await runValidate(options);
     } catch (error) {
       handleError(error);
     }

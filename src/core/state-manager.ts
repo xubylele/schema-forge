@@ -166,19 +166,24 @@ export async function schemaToState(schema: DatabaseSchema): Promise<StateFile> 
 
   for (const [tableName, table] of Object.entries(schema.tables)) {
     const columns: Record<string, StateColumn> = {};
+    const primaryKeyColumn =
+      table.primaryKey ?? table.columns.find(column => column.primaryKey)?.name ?? null;
 
     for (const column of table.columns) {
       columns[column.name] = {
         type: column.type,
         ...(column.primaryKey !== undefined && { primaryKey: column.primaryKey }),
         ...(column.unique !== undefined && { unique: column.unique }),
-        ...(column.nullable !== undefined && { nullable: column.nullable }),
+        nullable: column.nullable ?? true,
         ...(column.default !== undefined && { default: column.default }),
         ...(column.foreignKey !== undefined && { foreignKey: column.foreignKey }),
       };
     }
 
-    tables[tableName] = { columns };
+    tables[tableName] = {
+      columns,
+      ...(primaryKeyColumn !== null && { primaryKey: primaryKeyColumn }),
+    };
   }
 
   return {
