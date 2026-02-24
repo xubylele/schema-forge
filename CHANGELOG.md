@@ -1,5 +1,37 @@
 # Changelog
 
+## 1.3.0
+
+### Minor Changes
+
+- 03ed47b: Add nullability change detection to the diff engine and generate PostgreSQL ALTER COLUMN nullability migrations.
+
+  - Detect `nullable -> not null` and `not null -> nullable` transitions for existing columns
+  - Generate `ALTER TABLE ... ALTER COLUMN ... SET NOT NULL` and `DROP NOT NULL`
+  - Keep deterministic operation ordering when combined with type changes
+  - Normalize nullability state so missing `not null` is treated as nullable by default
+  - Extend unit and integration coverage for nullability diff and SQL generation
+
+### Patch Changes
+
+- 8778ee5: Add deterministic default value change detection in the diff engine and generate PostgreSQL default migrations.
+
+  - Detects default value changes on existing columns (`added`, `removed`, `modified`) by diffing `schema.sf` vs `state.json`.
+  - Adds normalization for default expressions to avoid obvious false positives (e.g. `NOW()` vs `now()`, whitespace-only differences).
+  - Generates `ALTER TABLE ... ALTER COLUMN ... SET DEFAULT ...;` and `ALTER TABLE ... ALTER COLUMN ... DROP DEFAULT;`.
+  - Improves parser handling for default expressions that include spaces.
+  - Adds unit and integration coverage for default-change detection and SQL output.
+
+- cb0cd02: Add deterministic constraint diffing for UNIQUE and PRIMARY KEY changes.
+
+  - Detect column-level `unique` add/remove changes for existing columns.
+  - Detect table primary key add/remove/change and emit deterministic drop/add operations.
+  - Generate PostgreSQL/Supabase SQL using deterministic names:
+    - `pk_<table>` for primary key constraints
+    - `uq_<table>_<column>` for unique constraints
+  - Add compatibility drop fallbacks for legacy PostgreSQL names (`<table>_pkey`, `<table>_<column>_key`).
+  - Update README and test coverage for constraint diffing, SQL generation, and deterministic output.
+
 ## 1.2.0
 
 ### Minor Changes
