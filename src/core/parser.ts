@@ -1,4 +1,5 @@
-import { Schema, SchemaTable, DatabaseSchema, Table, Column, ColumnType, ForeignKey } from '../types/types';
+import { Column, ColumnType, DatabaseSchema, ForeignKey, Schema, SchemaTable, Table } from '../types/types';
+import { warning } from '../utils/output';
 import { findFiles, readJsonFile } from './fs';
 
 /**
@@ -30,7 +31,8 @@ export class SchemaParser {
         const schema = await this.parseSchemaFile(file);
         schemas.push(schema);
       } catch (error) {
-        console.warn(`Warning: Could not parse ${file}:`, error);
+        const reason = error instanceof Error ? error.message : String(error);
+        warning(`Could not parse ${file}: ${reason}`);
       }
     }
 
@@ -54,7 +56,7 @@ export class SchemaParser {
         // Check if table already exists
         const existingIndex = mergedTables.findIndex(t => t.name === table.name);
         if (existingIndex >= 0) {
-          console.warn(`Warning: Duplicate table '${table.name}' found, using first occurrence`);
+          warning(`Duplicate table '${table.name}' found, using first occurrence`);
         } else {
           mergedTables.push(table);
         }
@@ -141,9 +143,28 @@ export function parseSchema(source: string): DatabaseSchema {
 
   let currentLine = 0;
 
-  const validColumnTypes: Set<string> = new Set([
-    'uuid', 'varchar', 'text', 'int', 'boolean', 'timestamptz', 'date'
+  const validBaseColumnTypes: Set<string> = new Set([
+    'uuid', 'varchar', 'text', 'int', 'bigint', 'boolean', 'timestamptz', 'date'
   ]);
+
+  function normalizeColumnType(type: string): string {
+    return type
+      .toLowerCase()
+      .trim()
+      .replace(/\s+/g, ' ')
+      .replace(/\s*\(\s*/g, '(')
+      .replace(/\s*,\s*/g, ',')
+      .replace(/\s*\)\s*/g, ')');
+  }
+
+  function isValidColumnType(type: string): boolean {
+    const normalizedType = normalizeColumnType(type);
+    if (validBaseColumnTypes.has(normalizedType)) {
+      return true;
+    }
+
+    return /^varchar\(\d+\)$/.test(normalizedType) || /^numeric\(\d+,\d+\)$/.test(normalizedType);
+  }
 
   /**
    * Remove comments and trim whitespace from a line
@@ -182,10 +203,12 @@ export function parseSchema(source: string): DatabaseSchema {
     }
 
     const colName = tokens[0];
-    const colType = tokens[1];
+    const colType = normalizeColumnType(tokens[1]);
 
-    if (!validColumnTypes.has(colType)) {
-      throw new Error(`Line ${lineNum}: Invalid column type '${colType}'. Valid types: ${Array.from(validColumnTypes).join(', ')}`);
+    if (!isValidColumnType(colType)) {
+      throw new Error(
+        `Line ${lineNum}: Invalid column type '${tokens[1]}'. Valid types: ${Array.from(validBaseColumnTypes).join(', ')}, varchar(n), numeric(p,s)`
+      );
     }
 
     const column: Column = {

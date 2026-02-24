@@ -9,6 +9,7 @@ import { loadState, saveState, schemaToState } from '../core/state-manager';
 import { nowTimestamp, slugifyName } from '../core/utils';
 import { validateSchema } from '../core/validator';
 import { generateSql, Provider, SqlConfig } from '../generator/sql-generator';
+import { info, success } from '../utils/output';
 
 export interface GenerateOptions {
   name?: string;
@@ -37,7 +38,7 @@ export async function runGenerate(options: GenerateOptions): Promise<void> {
   const configPath = getConfigPath(root);
 
   if (!(await fileExists(configPath))) {
-    throw new Error('SchemaForge project not initialized. Run "schemaforge init" first.');
+    throw new Error('SchemaForge project not initialized. Run "schema-forge init" first.');
   }
 
   const config = await readJsonFile<GenerateConfig>(configPath, {} as GenerateConfig);
@@ -59,10 +60,10 @@ export async function runGenerate(options: GenerateOptions): Promise<void> {
 
   const provider: Provider = (config.provider ?? 'postgres') as Provider;
   if (!config.provider) {
-    console.log('Provider not set; defaulting to postgres.');
+    info('Provider not set; defaulting to postgres.');
   }
 
-  console.log('Generating SQL...');
+  info('Generating SQL...');
 
   const schemaSource = await readTextFile(schemaPath);
   const schema = parseSchema(schemaSource);
@@ -79,7 +80,7 @@ export async function runGenerate(options: GenerateOptions): Promise<void> {
   const diff = diffSchemas(previousState, schema);
 
   if (diff.operations.length === 0) {
-    console.log('No changes detected');
+    info('No changes detected');
     return;
   }
 
@@ -95,7 +96,7 @@ export async function runGenerate(options: GenerateOptions): Promise<void> {
   const nextState = await schemaToState(schema);
   await saveState(statePath, nextState);
 
-  console.log(`✓ SQL generated successfully: ${migrationPath}`);
+  success(`SQL generated successfully: ${migrationPath}`);
 }
 
 export function createGenerateCommand(): Command {

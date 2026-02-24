@@ -34,6 +34,12 @@ function generateOperation(
       return generateCreateTable(operation.table, provider, sqlConfig);
     case 'drop_table':
       return generateDropTable(operation.tableName);
+    case 'column_type_changed':
+      return generateAlterColumnType(
+        operation.tableName,
+        operation.columnName,
+        operation.toType
+      );
     case 'add_column':
       return generateAddColumn(operation.tableName, operation.column, provider, sqlConfig);
     case 'drop_column':
@@ -120,4 +126,12 @@ function generateAddColumn(
 
 function generateDropColumn(tableName: string, columnName: string): string {
   return `ALTER TABLE ${tableName} DROP COLUMN ${columnName};`;
+}
+
+function generateAlterColumnType(
+  tableName: string,
+  columnName: string,
+  newType: string
+): string {
+  return `ALTER TABLE ${tableName} ALTER COLUMN ${columnName} TYPE ${newType} USING ${columnName}::${newType};`;
 }

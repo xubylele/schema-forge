@@ -1,5 +1,42 @@
 # Changelog
 
+## 1.2.0
+
+### Minor Changes
+
+- 253bca8: feat(diff): detect column type changes and generate ALTER COLUMN TYPE migrations
+
+  The Diff Engine now detects column type changes between the previous state (`state.json`) and the current schema definition (`schema.sf`).
+
+  When a column type is modified, Schema Forge generates the corresponding PostgreSQL migration:
+
+  ```sql
+  ALTER TABLE "table_name" ALTER COLUMN "column_name" TYPE "new_type";
+  ```
+
+  ### Added
+
+  - COLUMN_TYPE_CHANGED diff operation
+  - SQL generation for ALTER COLUMN TYPE
+  - Type normalization before comparison (case-insensitive, trimmed)
+  - Unit tests covering:
+    - varchar → text
+    - int → bigint
+    - numeric precision changes
+
+  ### Impact
+
+  This improves determinism and trust in the declarative workflow by ensuring type modifications are properly migrated.
+
+### Patch Changes
+
+- 0e71914: Improve CLI output UX with a reusable themed output utility.
+
+  - Add styled terminal output using `chalk` and `boxen` with a centralized Schema Forge theme.
+  - Use boxed success messages and consistent `info`/`warning`/`error` formatting across CLI commands.
+  - Update command messaging references to `schema-forge` for consistency.
+  - Ensure output degrades safely in non-interactive terminals.
+
 ## 1.1.1
 
 ### Patch Changes
@@ -65,7 +102,8 @@
 
 ### Minor Changes
 
-- b303df3: Streamlined release process – releases now happen automatically within a few minutes of merging PRs, without intermediate version PRs
+- b303df3: Streamlined release process
+- releases now happen automatically within a few minutes of merging PRs, without intermediate version PRs
 
 ### Patch Changes
 

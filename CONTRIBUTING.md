@@ -31,9 +31,9 @@ This will prompt you to:
 
 Follow [Semantic Versioning](https://semver.org/):
 
-- **patch** (0.1.0 → 0.1.1): Bug fixes, small improvements, no breaking changes
-- **minor** (0.1.0 → 0.2.0): New features, backwards-compatible changes
-- **major** (0.1.0 → 1.0.0): Breaking changes, incompatible API changes
+- **patch** (0.1.0 -> 0.1.1): Bug fixes, small improvements, no breaking changes
+- **minor** (0.1.0 -> 0.2.0): New features, backwards-compatible changes
+- **major** (0.1.0 -> 1.0.0): Breaking changes, incompatible API changes
 
 ### What Happens Next
 

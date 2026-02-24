@@ -90,6 +90,26 @@ describe('SQL Generator', () => {
       expect(result).toBe('ALTER TABLE users DROP COLUMN age;');
     });
 
+    it('should generate alter column type statement', () => {
+      const diff: DiffResult = {
+        operations: [
+          {
+            kind: 'column_type_changed',
+            tableName: 'users',
+            columnName: 'email',
+            fromType: 'varchar',
+            toType: 'text',
+          },
+        ],
+      };
+
+      const result = generateSql(diff, 'postgres');
+
+      expect(result).toBe(
+        'ALTER TABLE users ALTER COLUMN email TYPE text USING email::text;'
+      );
+    });
+
     it('should generate multiple operations separated by newlines', () => {
       const table: Table = {
         name: 'posts',

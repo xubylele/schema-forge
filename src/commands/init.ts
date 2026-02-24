@@ -12,6 +12,7 @@ import {
   getSchemaForgeDir,
   getStatePath
 } from '../core/paths';
+import { error, info, success } from '../utils/output';
 
 export async function runInit(): Promise<void> {
   const root = getProjectRoot();
@@ -19,8 +20,8 @@ export async function runInit(): Promise<void> {
 
   // Check if schemaforge directory or any file exists
   if (await fileExists(schemaForgeDir)) {
-    console.error('Error: schemaforge/ directory already exists');
-    console.error('Please remove it or run init in a different directory');
+    error('schemaforge/ directory already exists');
+    error('Please remove it or run init in a different directory');
     process.exit(1);
   }
 
@@ -30,26 +31,26 @@ export async function runInit(): Promise<void> {
 
   // Check individual files just to be safe
   if (await fileExists(schemaFilePath)) {
-    console.error(`Error: ${schemaFilePath} already exists`);
+    error(`${schemaFilePath} already exists`);
     process.exit(1);
   }
   if (await fileExists(configPath)) {
-    console.error(`Error: ${configPath} already exists`);
+    error(`${configPath} already exists`);
     process.exit(1);
   }
   if (await fileExists(statePath)) {
-    console.error(`Error: ${statePath} already exists`);
+    error(`${statePath} already exists`);
     process.exit(1);
   }
 
-  console.log('Initializing schema project...');
+  info('Initializing schema project...');
 
   // Create schemaforge directory
   await ensureDir(schemaForgeDir);
 
   // Create schema.sf file with exact content
   const schemaContent = `# SchemaForge schema definition
-# Run: schemaforge generate
+# Run: schema-forge generate
 
 table users {
   id uuid pk
@@ -57,7 +58,7 @@ table users {
 }
 `;
   await writeTextFile(schemaFilePath, schemaContent);
-  console.log(`✓ Created ${schemaFilePath}`);
+  success(`Created ${schemaFilePath}`);
 
   // Create config.json
   const config = {
@@ -71,7 +72,7 @@ table users {
     }
   };
   await writeJsonFile(configPath, config);
-  console.log(`✓ Created ${configPath}`);
+  success(`Created ${configPath}`);
 
   // Create state.json
   const state = {
@@ -79,17 +80,17 @@ table users {
     tables: {}
   };
   await writeJsonFile(statePath, state);
-  console.log(`✓ Created ${statePath}`);
+  success(`Created ${statePath}`);
 
   // Create output directory if it doesn't exist
   const outputDir = 'supabase/migrations';
   await ensureDir(outputDir);
-  console.log(`✓ Created ${outputDir}`);
+  success(`Created ${outputDir}`);
 
-  console.log('\n✓ Project initialized successfully');
-  console.log('Next steps:');
-  console.log('  1. Edit schemaforge/schema.sf to define your schema');
-  console.log('  2. Run: schemaforge generate');
+  success('Project initialized successfully');
+  info('Next steps:');
+  info('  1. Edit schemaforge/schema.sf to define your schema');
+  info('  2. Run: schema-forge generate');
 }
 
 export function createInitCommand(): Command {

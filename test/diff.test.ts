@@ -128,4 +128,216 @@ describe('diffSchemas', () => {
       column: { name: 'avatar', type: 'varchar', nullable: true },
     });
   });
+
+  it('should detect varchar to text type change', () => {
+    const oldState: StateFile = {
+      version: 1,
+      tables: {
+        users: {
+          columns: {
+            email: { type: 'varchar' },
+          },
+        },
+      },
+    };
+
+    const newSchema: DatabaseSchema = {
+      tables: {
+        users: {
+          name: 'users',
+          columns: [{ name: 'email', type: 'text' }],
+        },
+      },
+    };
+
+    const result = diffSchemas(oldState, newSchema);
+
+    expect(result.operations).toEqual([
+      {
+        kind: 'column_type_changed',
+        tableName: 'users',
+        columnName: 'email',
+        fromType: 'varchar',
+        toType: 'text',
+      },
+    ]);
+  });
+
+  it('should detect int to bigint type change', () => {
+    const oldState: StateFile = {
+      version: 1,
+      tables: {
+        users: {
+          columns: {
+            age: { type: 'int' },
+          },
+        },
+      },
+    };
+
+    const newSchema: DatabaseSchema = {
+      tables: {
+        users: {
+          name: 'users',
+          columns: [{ name: 'age', type: 'bigint' }],
+        },
+      },
+    };
+
+    const result = diffSchemas(oldState, newSchema);
+
+    expect(result.operations).toEqual([
+      {
+        kind: 'column_type_changed',
+        tableName: 'users',
+        columnName: 'age',
+        fromType: 'int',
+        toType: 'bigint',
+      },
+    ]);
+  });
+
+  it('should detect numeric precision/scale changes', () => {
+    const oldState: StateFile = {
+      version: 1,
+      tables: {
+        invoices: {
+          columns: {
+            total: { type: 'numeric(10,2)' },
+          },
+        },
+      },
+    };
+
+    const newSchema: DatabaseSchema = {
+      tables: {
+        invoices: {
+          name: 'invoices',
+          columns: [{ name: 'total', type: 'numeric(12,2)' }],
+        },
+      },
+    };
+
+    const result = diffSchemas(oldState, newSchema);
+
+    expect(result.operations).toEqual([
+      {
+        kind: 'column_type_changed',
+        tableName: 'invoices',
+        columnName: 'total',
+        fromType: 'numeric(10,2)',
+        toType: 'numeric(12,2)',
+      },
+    ]);
+  });
+
+  it('should not emit type change when only casing differs', () => {
+    const oldState: StateFile = {
+      version: 1,
+      tables: {
+        users: {
+          columns: {
+            email: { type: 'varchar' },
+          },
+        },
+      },
+    };
+
+    const newSchema: DatabaseSchema = {
+      tables: {
+        users: {
+          name: 'users',
+          columns: [{ name: 'email', type: 'VARCHAR' as any }],
+        },
+      },
+    };
+
+    const result = diffSchemas(oldState, newSchema);
+    expect(result.operations).toEqual([]);
+  });
+
+  it('should detect multiple type changes in same table', () => {
+    const oldState: StateFile = {
+      version: 1,
+      tables: {
+        users: {
+          columns: {
+            email: { type: 'varchar' },
+            age: { type: 'int' },
+          },
+        },
+      },
+    };
+
+    const newSchema: DatabaseSchema = {
+      tables: {
+        users: {
+          name: 'users',
+          columns: [
+            { name: 'email', type: 'text' },
+            { name: 'age', type: 'bigint' },
+          ],
+        },
+      },
+    };
+
+    const result = diffSchemas(oldState, newSchema);
+    expect(result.operations).toEqual([
+      {
+        kind: 'column_type_changed',
+        tableName: 'users',
+        columnName: 'email',
+        fromType: 'varchar',
+        toType: 'text',
+      },
+      {
+        kind: 'column_type_changed',
+        tableName: 'users',
+        columnName: 'age',
+        fromType: 'int',
+        toType: 'bigint',
+      },
+    ]);
+  });
+
+  it('should emit type changes before add_column in same table', () => {
+    const oldState: StateFile = {
+      version: 1,
+      tables: {
+        users: {
+          columns: {
+            email: { type: 'varchar' },
+          },
+        },
+      },
+    };
+
+    const newSchema: DatabaseSchema = {
+      tables: {
+        users: {
+          name: 'users',
+          columns: [
+            { name: 'email', type: 'text' },
+            { name: 'nickname', type: 'varchar' },
+          ],
+        },
+      },
+    };
+
+    const result = diffSchemas(oldState, newSchema);
+    expect(result.operations).toEqual([
+      {
+        kind: 'column_type_changed',
+        tableName: 'users',
+        columnName: 'email',
+        fromType: 'varchar',
+        toType: 'text',
+      },
+      {
+        kind: 'add_column',
+        tableName: 'users',
+        column: { name: 'nickname', type: 'varchar' },
+      },
+    ]);
+  });
 });
