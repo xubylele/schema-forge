@@ -341,6 +341,111 @@ describe('diffSchemas', () => {
     ]);
   });
 
+  it('should detect unique false to true on existing column', () => {
+    const oldState: StateFile = {
+      version: 1,
+      tables: {
+        users: {
+          columns: {
+            id: { type: 'uuid', primaryKey: true },
+            email: { type: 'text' },
+          },
+          primaryKey: 'id',
+        },
+      },
+    };
+
+    const newSchema: DatabaseSchema = {
+      tables: {
+        users: {
+          name: 'users',
+          columns: [
+            { name: 'id', type: 'uuid', primaryKey: true },
+            { name: 'email', type: 'text', unique: true },
+          ],
+          primaryKey: 'id',
+        },
+      },
+    };
+
+    const result = diffSchemas(oldState, newSchema);
+
+    expect(result.operations).toEqual([
+      {
+        kind: 'column_unique_changed',
+        tableName: 'users',
+        columnName: 'email',
+        from: false,
+        to: true,
+      },
+    ]);
+  });
+
+  it('should detect unique true to false on existing column', () => {
+    const oldState: StateFile = {
+      version: 1,
+      tables: {
+        users: {
+          columns: {
+            id: { type: 'uuid', primaryKey: true },
+            email: { type: 'text', unique: true },
+          },
+          primaryKey: 'id',
+        },
+      },
+    };
+
+    const newSchema: DatabaseSchema = {
+      tables: {
+        users: {
+          name: 'users',
+          columns: [
+            { name: 'id', type: 'uuid', primaryKey: true },
+            { name: 'email', type: 'text' },
+          ],
+          primaryKey: 'id',
+        },
+      },
+    };
+
+    const result = diffSchemas(oldState, newSchema);
+
+    expect(result.operations).toEqual([
+      {
+        kind: 'column_unique_changed',
+        tableName: 'users',
+        columnName: 'email',
+        from: true,
+        to: false,
+      },
+    ]);
+  });
+
+  it('should not emit unique operation when unique flag does not change', () => {
+    const oldState: StateFile = {
+      version: 1,
+      tables: {
+        users: {
+          columns: {
+            email: { type: 'text', unique: true },
+          },
+        },
+      },
+    };
+
+    const newSchema: DatabaseSchema = {
+      tables: {
+        users: {
+          name: 'users',
+          columns: [{ name: 'email', type: 'text', unique: true }],
+        },
+      },
+    };
+
+    const result = diffSchemas(oldState, newSchema);
+    expect(result.operations).toEqual([]);
+  });
+
   it('should detect nullable to not null change', () => {
     const oldState: StateFile = {
       version: 1,
@@ -514,5 +619,153 @@ describe('diffSchemas', () => {
         to: false,
       },
     ]);
+  });
+
+  it('should detect primary key added', () => {
+    const oldState: StateFile = {
+      version: 1,
+      tables: {
+        users: {
+          columns: {
+            id: { type: 'uuid' },
+          },
+        },
+      },
+    };
+
+    const newSchema: DatabaseSchema = {
+      tables: {
+        users: {
+          name: 'users',
+          columns: [{ name: 'id', type: 'uuid', primaryKey: true }],
+          primaryKey: 'id',
+        },
+      },
+    };
+
+    const result = diffSchemas(oldState, newSchema);
+    expect(result.operations).toEqual([
+      {
+        kind: 'add_primary_key_constraint',
+        tableName: 'users',
+        columnName: 'id',
+      },
+    ]);
+  });
+
+  it('should detect primary key removed', () => {
+    const oldState: StateFile = {
+      version: 1,
+      tables: {
+        users: {
+          columns: {
+            id: { type: 'uuid', primaryKey: true },
+          },
+          primaryKey: 'id',
+        },
+      },
+    };
+
+    const newSchema: DatabaseSchema = {
+      tables: {
+        users: {
+          name: 'users',
+          columns: [{ name: 'id', type: 'uuid' }],
+        },
+      },
+    };
+
+    const result = diffSchemas(oldState, newSchema);
+    expect(result.operations).toEqual([
+      {
+        kind: 'drop_primary_key_constraint',
+        tableName: 'users',
+      },
+    ]);
+  });
+
+  it('should detect primary key changed and order drop before add', () => {
+    const oldState: StateFile = {
+      version: 1,
+      tables: {
+        users: {
+          columns: {
+            id: { type: 'uuid', primaryKey: true },
+            email: { type: 'text' },
+          },
+          primaryKey: 'id',
+        },
+      },
+    };
+
+    const newSchema: DatabaseSchema = {
+      tables: {
+        users: {
+          name: 'users',
+          columns: [
+            { name: 'user_id', type: 'uuid', primaryKey: true },
+            { name: 'email', type: 'text' },
+          ],
+          primaryKey: 'user_id',
+        },
+      },
+    };
+
+    const result = diffSchemas(oldState, newSchema);
+    expect(result.operations).toEqual([
+      {
+        kind: 'drop_primary_key_constraint',
+        tableName: 'users',
+      },
+      {
+        kind: 'add_column',
+        tableName: 'users',
+        column: { name: 'user_id', type: 'uuid', primaryKey: true },
+      },
+      {
+        kind: 'add_primary_key_constraint',
+        tableName: 'users',
+        columnName: 'user_id',
+      },
+      {
+        kind: 'drop_column',
+        tableName: 'users',
+        columnName: 'id',
+      },
+    ]);
+  });
+
+  it('should produce deterministic diff operation ordering', () => {
+    const oldState: StateFile = {
+      version: 1,
+      tables: {
+        users: {
+          columns: {
+            id: { type: 'uuid', primaryKey: true },
+            email: { type: 'varchar' },
+          },
+          primaryKey: 'id',
+        },
+      },
+    };
+
+    const newSchema: DatabaseSchema = {
+      tables: {
+        users: {
+          name: 'users',
+          columns: [
+            { name: 'id', type: 'uuid' },
+            { name: 'email', type: 'text', unique: true },
+            { name: 'user_id', type: 'uuid', primaryKey: true },
+          ],
+          primaryKey: 'user_id',
+        },
+      },
+    };
+
+    const firstRun = diffSchemas(oldState, newSchema);
+    const secondRun = diffSchemas(oldState, newSchema);
+
+    expect(firstRun.operations).toEqual(secondRun.operations);
   });
 });

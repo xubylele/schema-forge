@@ -320,7 +320,7 @@ function validateDuplicateTables(schema: DatabaseSchema): void {
 function validateTableColumns(tableName: string, table: Table, allTables: Record<string, Table>): void {
   // Validate duplicate columns
   const columnNames = new Set<string>();
-  let primaryKeyCount = 0;
+  const primaryKeyColumns: string[] = [];
 
   for (const column of table.columns) {
     // Check for duplicate columns
@@ -331,7 +331,7 @@ function validateTableColumns(tableName: string, table: Table, allTables: Record
 
     // Count primary keys
     if (column.primaryKey) {
-      primaryKeyCount++;
+      primaryKeyColumns.push(column.name);
     }
 
     // Validate column type
@@ -366,7 +366,34 @@ function validateTableColumns(tableName: string, table: Table, allTables: Record
   }
 
   // Validate multiple primary keys
-  if (primaryKeyCount > 1) {
-    throw new Error(`Table '${tableName}': can only have one primary key (found ${primaryKeyCount})`);
+  if (primaryKeyColumns.length > 1) {
+    throw new Error(`Table '${tableName}': can only have one primary key (found ${primaryKeyColumns.length})`);
+  }
+
+  const normalizedPrimaryKey = table.primaryKey ?? primaryKeyColumns[0] ?? null;
+
+  if (table.primaryKey && !columnNames.has(table.primaryKey)) {
+    throw new Error(
+      `Table '${tableName}': primary key column '${table.primaryKey}' does not exist`
+    );
+  }
+
+  if (
+    table.primaryKey &&
+    primaryKeyColumns.length === 1 &&
+    primaryKeyColumns[0] !== table.primaryKey
+  ) {
+    throw new Error(
+      `Table '${tableName}': column-level primary key '${primaryKeyColumns[0]}' does not match table primary key '${table.primaryKey}'`
+    );
+  }
+
+  if (normalizedPrimaryKey) {
+    const pkMatches = table.columns.filter(column => column.name === normalizedPrimaryKey);
+    if (pkMatches.length !== 1) {
+      throw new Error(
+        `Table '${tableName}': primary key column '${normalizedPrimaryKey}' is invalid`
+      );
+    }
   }
 }

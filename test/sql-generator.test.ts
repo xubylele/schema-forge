@@ -807,4 +807,127 @@ describe('SQL Generator', () => {
       expect(lines[1]).toMatch(/^\s+/);
     });
   });
+
+  describe('Constraint Changes', () => {
+    it('should generate deterministic ADD UNIQUE constraint SQL', () => {
+      const diff: DiffResult = {
+        operations: [
+          {
+            kind: 'column_unique_changed',
+            tableName: 'users',
+            columnName: 'email',
+            from: false,
+            to: true,
+          },
+        ],
+      };
+
+      const result = generateSql(diff, 'postgres');
+      expect(result).toBe(
+        'ALTER TABLE users ADD CONSTRAINT uq_users_email UNIQUE (email);'
+      );
+    });
+
+    it('should generate deterministic DROP UNIQUE constraint SQL with legacy fallback', () => {
+      const diff: DiffResult = {
+        operations: [
+          {
+            kind: 'column_unique_changed',
+            tableName: 'users',
+            columnName: 'email',
+            from: true,
+            to: false,
+          },
+        ],
+      };
+
+      const result = generateSql(diff, 'postgres');
+      expect(result).toBe(
+        'ALTER TABLE users DROP CONSTRAINT IF EXISTS uq_users_email;\nALTER TABLE users DROP CONSTRAINT IF EXISTS users_email_key;'
+      );
+    });
+
+    it('should generate ADD PRIMARY KEY constraint SQL with deterministic name', () => {
+      const diff: DiffResult = {
+        operations: [
+          {
+            kind: 'add_primary_key_constraint',
+            tableName: 'users',
+            columnName: 'id',
+          },
+        ],
+      };
+
+      const result = generateSql(diff, 'postgres');
+      expect(result).toBe(
+        'ALTER TABLE users ADD CONSTRAINT pk_users PRIMARY KEY (id);'
+      );
+    });
+
+    it('should generate DROP PRIMARY KEY constraint SQL with legacy fallback', () => {
+      const diff: DiffResult = {
+        operations: [
+          {
+            kind: 'drop_primary_key_constraint',
+            tableName: 'users',
+          },
+        ],
+      };
+
+      const result = generateSql(diff, 'postgres');
+      expect(result).toBe(
+        'ALTER TABLE users DROP CONSTRAINT IF EXISTS pk_users;\nALTER TABLE users DROP CONSTRAINT IF EXISTS users_pkey;'
+      );
+    });
+
+    it('should keep deterministic drop then add ordering for primary key change', () => {
+      const diff: DiffResult = {
+        operations: [
+          {
+            kind: 'drop_primary_key_constraint',
+            tableName: 'users',
+          },
+          {
+            kind: 'add_primary_key_constraint',
+            tableName: 'users',
+            columnName: 'user_id',
+          },
+        ],
+      };
+
+      const result = generateSql(diff, 'postgres');
+      const parts = result.split('\n\n');
+
+      expect(parts).toHaveLength(2);
+      expect(parts[0]).toContain('DROP CONSTRAINT IF EXISTS pk_users');
+      expect(parts[1]).toBe(
+        'ALTER TABLE users ADD CONSTRAINT pk_users PRIMARY KEY (user_id);'
+      );
+    });
+
+    it('should produce identical SQL for repeated runs', () => {
+      const diff: DiffResult = {
+        operations: [
+          {
+            kind: 'column_unique_changed',
+            tableName: 'users',
+            columnName: 'email',
+            from: false,
+            to: true,
+          },
+          {
+            kind: 'drop_primary_key_constraint',
+            tableName: 'users',
+          },
+          {
+            kind: 'add_primary_key_constraint',
+            tableName: 'users',
+            columnName: 'user_id',
+          },
+        ],
+      };
+
+      expect(generateSql(diff, 'postgres')).toBe(generateSql(diff, 'postgres'));
+    });
+  });
 });

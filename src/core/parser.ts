@@ -336,9 +336,12 @@ export function parseSchema(source: string): DatabaseSchema {
       throw new Error(`Line ${startLine + 1}: Table '${tableName}' block not closed (missing '}')`);
     }
 
+    const primaryKeyColumn = columns.find(column => column.primaryKey)?.name ?? null;
+
     tables[tableName] = {
       name: tableName,
-      columns
+      columns,
+      ...(primaryKeyColumn !== null && { primaryKey: primaryKeyColumn }),
     };
 
     return lineIdx;

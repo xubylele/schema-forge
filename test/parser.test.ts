@@ -37,6 +37,7 @@ describe('parseSchema', () => {
       primaryKey: true,
       nullable: true
     });
+    expect(result.tables.users.primaryKey).toBe('id');
   });
 
   it('should parse unique modifier', () => {
@@ -211,6 +212,8 @@ describe('parseSchema', () => {
     expect(result.tables).toHaveProperty('posts');
     expect(result.tables.users.columns).toHaveLength(2);
     expect(result.tables.posts.columns).toHaveLength(3);
+    expect(result.tables.users.primaryKey).toBe('id');
+    expect(result.tables.posts.primaryKey).toBe('id');
   });
 
   it('should preserve column order', () => {
