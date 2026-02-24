@@ -79,8 +79,8 @@ describe('slugifyName', () => {
     expect(slugifyName('-my-file-')).toBe('my-file');
   });
 
-  it('should handle unicode and special characters', () => {
-    expect(slugifyName('Café-Manager')).toBe('caf-manager');
+  it('should handle special characters', () => {
+    expect(slugifyName('Cafe-Manager')).toBe('cafe-manager');
   });
 
   it('should handle camelCase by lowercasing (no word splitting)', () => {

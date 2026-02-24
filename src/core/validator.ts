@@ -239,7 +239,7 @@ export const defaultValidator = new SchemaValidator();
 // ============================================================================
 
 /**
- * Tipos de columna válidos para la base de datos
+ * Valid column types for the database
  */
 const VALID_BASE_COLUMN_TYPES: ColumnType[] = [
   'uuid',
@@ -269,22 +269,22 @@ function isValidColumnType(type: string): boolean {
 }
 
 /**
- * Valida una estructura de DatabaseSchema y lanza un Error si hay validaciones fallidas
+ * Validates a DatabaseSchema structure and throws an Error when validations fail
  * 
- * Validaciones:
- * - Detecta tablas duplicadas
- * - Detecta columnas duplicadas dentro de cada tabla
- * - Detecta múltiples primary keys en una tabla
- * - Valida que los tipos de columna sean válidos
- * - Valida que las foreign keys referencien tablas y columnas existentes
+ * Validations:
+ * - Detects duplicate tables
+ * - Detects duplicate columns within each table
+ * - Detects multiple primary keys in a table
+ * - Validates that column types are valid
+ * - Validates that foreign keys reference existing tables and columns
  * 
- * @param schema - La DatabaseSchema a validar
- * @throws Error con mensaje descriptivo si hay violaciones de validación
+ * @param schema - The DatabaseSchema to validate
+ * @throws Error with a descriptive message if validation rules are violated
  */
 export function validateSchema(schema: DatabaseSchema): void {
   validateDuplicateTables(schema);
 
-  // Validar cada tabla
+  // Validate each table
   for (const tableName in schema.tables) {
     const table = schema.tables[tableName];
     validateTableColumns(tableName, table, schema.tables);
@@ -292,10 +292,10 @@ export function validateSchema(schema: DatabaseSchema): void {
 }
 
 /**
- * Valida que no haya tablas duplicadas en el schema
+ * Validates that there are no duplicate tables in the schema
  * 
- * @param schema - La DatabaseSchema a validar
- * @throws Error si se detectan tablas duplicadas
+ * @param schema - The DatabaseSchema to validate
+ * @throws Error if duplicate tables are detected
  */
 function validateDuplicateTables(schema: DatabaseSchema): void {
   const tableNames = Object.keys(schema.tables);
@@ -303,70 +303,70 @@ function validateDuplicateTables(schema: DatabaseSchema): void {
 
   for (const tableName of tableNames) {
     if (seen.has(tableName)) {
-      throw new Error(`Tabla duplicada: '${tableName}'`);
+      throw new Error(`Duplicate table: '${tableName}'`);
     }
     seen.add(tableName);
   }
 }
 
 /**
- * Valida columnas, primary keys, tipos y foreign keys dentro de una tabla
+ * Validates columns, primary keys, types, and foreign keys within a table
  * 
- * @param tableName - Nombre de la tabla
- * @param table - La tabla a validar
- * @param allTables - Todas las tablas del schema (para validar foreign keys)
- * @throws Error si se detectan violaciones
+ * @param tableName - Table name
+ * @param table - The table to validate
+ * @param allTables - All schema tables (used to validate foreign keys)
+ * @throws Error if validation violations are detected
  */
 function validateTableColumns(tableName: string, table: Table, allTables: Record<string, Table>): void {
-  // Validar columnas duplicadas
+  // Validate duplicate columns
   const columnNames = new Set<string>();
   let primaryKeyCount = 0;
 
   for (const column of table.columns) {
-    // Verificar columnas duplicadas
+    // Check for duplicate columns
     if (columnNames.has(column.name)) {
-      throw new Error(`Tabla '${tableName}': columna duplicada '${column.name}'`);
+      throw new Error(`Table '${tableName}': duplicate column '${column.name}'`);
     }
     columnNames.add(column.name);
 
-    // Contar primary keys
+    // Count primary keys
     if (column.primaryKey) {
       primaryKeyCount++;
     }
 
-    // Validar tipo de columna
+    // Validate column type
     if (!isValidColumnType(column.type)) {
       throw new Error(
-        `Tabla '${tableName}', columna '${column.name}': tipo '${column.type}' no es válido. Tipos soportados: ${VALID_BASE_COLUMN_TYPES.join(', ')}, varchar(n), numeric(p,s)`
+        `Table '${tableName}', column '${column.name}': type '${column.type}' is not valid. Supported types: ${VALID_BASE_COLUMN_TYPES.join(', ')}, varchar(n), numeric(p,s)`
       );
     }
 
-    // Validar foreign key
+    // Validate foreign key
     if (column.foreignKey) {
       const fkTable = column.foreignKey.table;
       const fkColumn = column.foreignKey.column;
 
-      // Verificar que la tabla referenciada existe
+      // Check that the referenced table exists
       if (!allTables[fkTable]) {
         throw new Error(
-          `Tabla '${tableName}', columna '${column.name}': tabla referenciada '${fkTable}' no existe`
+          `Table '${tableName}', column '${column.name}': referenced table '${fkTable}' does not exist`
         );
       }
 
-      // Verificar que la columna existe en la tabla referenciada
+      // Check that the column exists in the referenced table
       const referencedTable = allTables[fkTable];
       const columnExists = referencedTable.columns.some(col => col.name === fkColumn);
 
       if (!columnExists) {
         throw new Error(
-          `Tabla '${tableName}', columna '${column.name}': tabla '${fkTable}' no tiene columna '${fkColumn}'`
+          `Table '${tableName}', column '${column.name}': table '${fkTable}' does not have column '${fkColumn}'`
         );
       }
     }
   }
 
-  // Validar múltiples primary keys
+  // Validate multiple primary keys
   if (primaryKeyCount > 1) {
-    throw new Error(`Tabla '${tableName}': solo puede tener una primary key (encontradas ${primaryKeyCount})`);
+    throw new Error(`Table '${tableName}': can only have one primary key (found ${primaryKeyCount})`);
   }
 }
