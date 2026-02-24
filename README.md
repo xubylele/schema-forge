@@ -188,6 +188,24 @@ schema-forge diff
 
 Shows what SQL would be generated if you ran `generate`. Useful for previewing changes.
 
+### `schema-forge import`
+
+Reconstruct `schemaforge/schema.sf` from existing PostgreSQL/Supabase SQL migrations.
+
+```bash
+schema-forge import <path-to-sql-file-or-migrations-dir>
+```
+
+**Options:**
+
+- `--out <path>` - Optional output schema file path (default: `schemaforge/schema.sf`)
+
+Behavior:
+
+- Parses supported DDL statements in order from a file or from sorted migration filenames in a directory
+- Ignores unsupported SQL safely and prints warnings
+- Writes a normalized SchemaForge DSL schema file
+
 ### `schema-forge validate`
 
 Detect destructive or risky schema changes before generating/applying migrations.
