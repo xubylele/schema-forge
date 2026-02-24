@@ -6,25 +6,26 @@ import { runDiff } from './commands/diff';
 import { runGenerate } from './commands/generate';
 import { runInit } from './commands/init';
 import { SchemaValidationError } from './core/errors';
+import { error as printError } from './utils/output';
 
 const program = new Command();
 
 program
-  .name('schemaforge')
+  .name('schema-forge')
   .description('CLI tool for schema management and SQL generation')
   .version(pkg.version);
 
 function handleError(error: unknown): void {
   if (error instanceof SchemaValidationError) {
-    console.error(error.message);
+    printError(error.message);
     process.exitCode = 2;
     return;
   }
 
   if (error instanceof Error) {
-    console.error(error.message);
+    printError(error.message);
   } else {
-    console.error('Unexpected error');
+    printError('Unexpected error');
   }
 
   process.exitCode = 1;

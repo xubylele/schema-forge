@@ -1,4 +1,5 @@
-import { Schema, SchemaTable, DatabaseSchema, Table, Column, ColumnType, ForeignKey } from '../types/types';
+import { Column, ColumnType, DatabaseSchema, ForeignKey, Schema, SchemaTable, Table } from '../types/types';
+import { warning } from '../utils/output';
 import { findFiles, readJsonFile } from './fs';
 
 /**
@@ -30,7 +31,8 @@ export class SchemaParser {
         const schema = await this.parseSchemaFile(file);
         schemas.push(schema);
       } catch (error) {
-        console.warn(`Warning: Could not parse ${file}:`, error);
+        const reason = error instanceof Error ? error.message : String(error);
+        warning(`Could not parse ${file}: ${reason}`);
       }
     }
 
@@ -54,7 +56,7 @@ export class SchemaParser {
         // Check if table already exists
         const existingIndex = mergedTables.findIndex(t => t.name === table.name);
         if (existingIndex >= 0) {
-          console.warn(`Warning: Duplicate table '${table.name}' found, using first occurrence`);
+          warning(`Duplicate table '${table.name}' found, using first occurrence`);
         } else {
           mergedTables.push(table);
         }

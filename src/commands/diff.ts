@@ -1,13 +1,14 @@
 import { Command } from 'commander';
 import path from 'path';
-import { SchemaValidationError } from '../core/errors';
 import { diffSchemas } from '../core/diff';
+import { SchemaValidationError } from '../core/errors';
 import { fileExists, readJsonFile, readTextFile } from '../core/fs';
 import { parseSchema } from '../core/parser';
 import { getConfigPath, getProjectRoot } from '../core/paths';
 import { loadState } from '../core/state-manager';
 import { validateSchema } from '../core/validator';
 import { generateSql, Provider, SqlConfig } from '../generator/sql-generator';
+import { success } from '../utils/output';
 
 interface DiffConfig {
   schemaFile: string;
@@ -27,7 +28,7 @@ export async function runDiff(): Promise<void> {
   const configPath = getConfigPath(root);
 
   if (!(await fileExists(configPath))) {
-    throw new Error('SchemaForge project not initialized. Run "schemaforge init" first.');
+    throw new Error('SchemaForge project not initialized. Run "schema-forge init" first.');
   }
 
   const config = await readJsonFile<DiffConfig>(configPath, {} as DiffConfig);
@@ -63,7 +64,7 @@ export async function runDiff(): Promise<void> {
   const diff = diffSchemas(previousState, schema);
 
   if (diff.operations.length === 0) {
-    console.log('No changes detected');
+    success('No changes detected');
     return;
   }
 

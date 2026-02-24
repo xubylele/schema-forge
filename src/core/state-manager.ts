@@ -1,12 +1,10 @@
 import path from 'path';
 import {
-  SchemaForgeConfig,
   DatabaseSchema,
-  StateFile,
-  StateTable,
+  SchemaForgeConfig,
   StateColumn,
-  Table,
-  Column,
+  StateFile,
+  StateTable
 } from '../types/types';
 import { ensureDir, fileExists, readJsonFile, writeJsonFile } from './fs';
 
