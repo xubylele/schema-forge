@@ -40,6 +40,7 @@ export interface Column {
 export interface Table {
   name: string;
   columns: Column[];
+  primaryKey?: string | null;
 }
 
 export interface DatabaseSchema {
@@ -61,6 +62,7 @@ export interface StateColumn {
 
 export interface StateTable {
   columns: Record<string, StateColumn>;
+  primaryKey?: string | null;
 }
 
 export interface StateFile {
@@ -83,7 +85,20 @@ export type Operation =
     toType: ColumnType;
   }
   | { kind: 'add_column'; tableName: string; column: Column }
-  | { kind: 'drop_column'; tableName: string; columnName: string };
+  | { kind: 'drop_column'; tableName: string; columnName: string }
+  | {
+    kind: 'column_unique_changed';
+    tableName: string;
+    columnName: string;
+    from: boolean;
+    to: boolean;
+  }
+  | { kind: 'drop_primary_key_constraint'; tableName: string }
+  | {
+    kind: 'add_primary_key_constraint';
+    tableName: string;
+    columnName: string;
+  };
 
 export interface DiffResult {
   operations: Operation[];

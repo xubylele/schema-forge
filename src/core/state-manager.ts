@@ -166,6 +166,8 @@ export async function schemaToState(schema: DatabaseSchema): Promise<StateFile> 
 
   for (const [tableName, table] of Object.entries(schema.tables)) {
     const columns: Record<string, StateColumn> = {};
+    const primaryKeyColumn =
+      table.primaryKey ?? table.columns.find(column => column.primaryKey)?.name ?? null;
 
     for (const column of table.columns) {
       columns[column.name] = {
@@ -178,7 +180,10 @@ export async function schemaToState(schema: DatabaseSchema): Promise<StateFile> 
       };
     }
 
-    tables[tableName] = { columns };
+    tables[tableName] = {
+      columns,
+      ...(primaryKeyColumn !== null && { primaryKey: primaryKeyColumn }),
+    };
   }
 
   return {

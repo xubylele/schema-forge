@@ -269,4 +269,37 @@ describe('validateSchema', () => {
 
     expect(() => validateSchema(schema)).not.toThrow();
   });
+
+  it('should validate schema when table.primaryKey is set', () => {
+    const schema: DatabaseSchema = {
+      tables: {
+        users: {
+          name: 'users',
+          columns: [
+            { name: 'id', type: 'uuid' },
+            { name: 'email', type: 'varchar', unique: true },
+          ],
+          primaryKey: 'id',
+        },
+      },
+    };
+
+    expect(() => validateSchema(schema)).not.toThrow();
+  });
+
+  it('should throw when table.primaryKey references missing column', () => {
+    const schema: DatabaseSchema = {
+      tables: {
+        users: {
+          name: 'users',
+          columns: [{ name: 'id', type: 'uuid' }],
+          primaryKey: 'user_id',
+        },
+      },
+    };
+
+    expect(() => validateSchema(schema)).toThrow(
+      "Table 'users': primary key column 'user_id' does not exist"
+    );
+  });
 });

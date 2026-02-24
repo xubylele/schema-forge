@@ -9,6 +9,7 @@ A modern CLI tool for database schema management with a clean DSL and automatic 
 - **State Tracking** - Built-in state management to track your schema evolution
 - **Type Safety** - Validates your schema before generating SQL
 - **Postgres/Supabase** - Currently supports PostgreSQL and Supabase
+- **Constraint Diffing** - Detects UNIQUE and PRIMARY KEY changes with deterministic constraint names
 
 ## Installation
 
@@ -166,6 +167,48 @@ schema-forge diff
 ```
 
 Shows what SQL would be generated if you ran `generate`. Useful for previewing changes.
+
+## Constraint Change Detection
+
+SchemaForge detects and generates migrations for:
+
+- Column-level `unique` added/removed
+- Table primary key added/removed/changed (single-column PK)
+
+### Deterministic Constraint Names
+
+To keep migrations stable and safe to drop later, generated constraint names are deterministic:
+
+- Primary key: `pk_<table>` (example: `pk_users`)
+- Unique (column): `uq_<table>_<column>` (example: `uq_users_email`)
+
+Identifiers are normalized to lowercase, non-alphanumeric characters are replaced with `_`, and repeated `_` are collapsed.
+
+### Generated SQL Examples
+
+Add unique:
+
+```sql
+ALTER TABLE users ADD CONSTRAINT uq_users_email UNIQUE (email);
+```
+
+Remove unique:
+
+```sql
+ALTER TABLE users DROP CONSTRAINT IF EXISTS uq_users_email;
+ALTER TABLE users DROP CONSTRAINT IF EXISTS users_email_key;
+```
+
+Change primary key column (`id` -> `user_id`):
+
+```sql
+ALTER TABLE users DROP CONSTRAINT IF EXISTS pk_users;
+ALTER TABLE users DROP CONSTRAINT IF EXISTS users_pkey;
+
+ALTER TABLE users ADD CONSTRAINT pk_users PRIMARY KEY (user_id);
+```
+
+When dropping constraints, SchemaForge attempts deterministic names first, then PostgreSQL legacy defaults (`<table>_pkey`, `<table>_<column>_key`) for compatibility.
 
 ## Schema DSL Format
 
