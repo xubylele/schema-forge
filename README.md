@@ -188,6 +188,32 @@ schema-forge diff
 
 Shows what SQL would be generated if you ran `generate`. Useful for previewing changes.
 
+### `schema-forge validate`
+
+Detect destructive or risky schema changes before generating/applying migrations.
+
+```bash
+schema-forge validate
+```
+
+Validation checks include:
+
+- Dropped tables (`DROP_TABLE`, error)
+- Dropped columns (`DROP_COLUMN`, error)
+- Column type changes (`ALTER_COLUMN_TYPE`, warning/error based on compatibility heuristics)
+- Nullable to NOT NULL changes (`SET_NOT_NULL`, warning)
+
+Use JSON mode for CI and automation:
+
+```bash
+schema-forge validate --json
+```
+
+Exit codes:
+
+- `1` when one or more `error` findings are detected
+- `0` when no `error` findings are detected (warnings alone do not fail)
+
 ## Constraint Change Detection
 
 SchemaForge detects and generates migrations for:
