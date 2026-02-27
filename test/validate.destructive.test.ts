@@ -1,7 +1,9 @@
+import {
+  parseSchema,
+  validateSchemaChanges
+} from '@xubylele/schema-forge-core';
 import { describe, expect, it } from 'vitest';
-import { parseSchema } from '../src/core/parser';
-import { validateSchemaChanges } from '../src/core/validate';
-import { DatabaseSchema, StateFile } from '../src/types/types';
+import type { DatabaseSchema, StateFile } from '../src/domain';
 
 describe('validateSchemaChanges', () => {
   it('reports DROP_TABLE as error when table is removed', () => {

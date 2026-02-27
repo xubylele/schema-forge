@@ -1,6 +1,6 @@
+import { validateSchema } from '@xubylele/schema-forge-core';
 import { describe, expect, it } from 'vitest';
-import { validateSchema } from '../src/core/validator';
-import { DatabaseSchema } from '../src/types/types';
+import type { DatabaseSchema } from '../src/domain';
 
 describe('validateSchema', () => {
   it('should not throw error for valid schema', () => {

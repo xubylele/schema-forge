@@ -62,8 +62,8 @@ table users {
 
   // Create config.json
   const config = {
-    provider: 'supabase',
-    outputDir: 'supabase/migrations',
+    provider: 'postgres',
+    outputDir: 'migrations',
     schemaFile: 'schemaforge/schema.sf',
     stateFile: 'schemaforge/state.json',
     sql: {
@@ -83,7 +83,7 @@ table users {
   success(`Created ${statePath}`);
 
   // Create output directory if it doesn't exist
-  const outputDir = 'supabase/migrations';
+  const outputDir = 'migrations';
   await ensureDir(outputDir);
   success(`Created ${outputDir}`);
 

@@ -1,6 +1,6 @@
+import { diffSchemas } from '@xubylele/schema-forge-core';
 import { describe, expect, it } from 'vitest';
-import { diffSchemas } from '../src/core/diff';
-import { DatabaseSchema, StateFile } from '../src/types/types';
+import type { DatabaseSchema, StateFile } from '../src/domain';
 
 describe('diffSchemas', () => {
   it('should generate ordered create/add/drop operations', () => {

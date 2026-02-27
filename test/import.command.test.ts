@@ -1,9 +1,9 @@
+import { parseSchema } from '@xubylele/schema-forge-core';
 import { promises as fs } from 'fs';
 import os from 'os';
 import path from 'path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { runImport } from '../src/commands/import';
-import { parseSchema } from '../src/core/parser';
 
 describe('runImport', () => {
   let tempDir: string;
@@ -46,8 +46,8 @@ describe('runImport', () => {
     const schemaSource = await fs.readFile(schemaPath, 'utf-8');
     const parsed = parseSchema(schemaSource);
 
-    expect(parsed.tables.users.columns.map(column => column.name)).toEqual(['id', 'email']);
-    expect(parsed.tables.users.columns.find(column => column.name === 'email')?.nullable).toBe(false);
+    expect(parsed.tables.users.columns.map((column: typeof parsed.tables.users.columns[0]) => column.name)).toEqual(['id', 'email']);
+    expect(parsed.tables.users.columns.find((column: typeof parsed.tables.users.columns[0]) => column.name === 'email')?.nullable).toBe(false);
   });
 
   it('imports a directory in filename order and ignores unsupported statements with warnings', async () => {
@@ -91,7 +91,7 @@ describe('runImport', () => {
     const parsed = parseSchema(schemaSource);
     const users = parsed.tables.users;
 
-    expect(users.columns.map(column => column.name)).toEqual(['id', 'email', 'created_at']);
-    expect(users.columns.find(column => column.name === 'email')?.type).toBe('varchar(255)');
+    expect(users.columns.map((column: typeof users.columns[0]) => column.name)).toEqual(['id', 'email', 'created_at']);
+    expect(users.columns.find((column: typeof users.columns[0]) => column.name === 'email')?.type).toBe('varchar(255)');
   });
 });
