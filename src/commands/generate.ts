@@ -2,6 +2,7 @@ import { Command } from 'commander';
 import path from 'path';
 import { ensureDir, fileExists, readJsonFile, readTextFile, writeTextFile } from '../core/fs';
 import { getConfigPath, getProjectRoot } from '../core/paths';
+import { resolveProvider } from '../core/provider';
 import { nowTimestamp, slugifyName } from '../core/utils';
 import {
   createSchemaValidationError,
@@ -12,7 +13,6 @@ import {
   saveState,
   schemaToState,
   validateSchema,
-  type Provider,
   type SqlConfig
 } from '../domain';
 import { info, success } from '../utils/output';
@@ -60,12 +60,8 @@ export async function runGenerate(options: GenerateOptions): Promise<void> {
   const statePath = resolveConfigPath(root, config.stateFile);
   const outputDir = resolveConfigPath(root, config.outputDir);
 
-  if (config.provider && config.provider !== 'postgres' && config.provider !== 'supabase') {
-    throw new Error(`Unsupported provider '${config.provider}'.`);
-  }
-
-  const provider: Provider = (config.provider ?? 'postgres') as Provider;
-  if (!config.provider) {
+  const { provider, usedDefault } = resolveProvider(config.provider);
+  if (usedDefault) {
     info('Provider not set; defaulting to postgres.');
   }
 

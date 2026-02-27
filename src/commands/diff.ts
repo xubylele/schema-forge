@@ -2,6 +2,7 @@ import { Command } from 'commander';
 import path from 'path';
 import { fileExists, readJsonFile, readTextFile } from '../core/fs';
 import { getConfigPath, getProjectRoot } from '../core/paths';
+import { resolveProvider } from '../core/provider';
 import {
   createSchemaValidationError,
   diffSchemas,
@@ -9,7 +10,6 @@ import {
   loadState,
   parseSchema,
   validateSchema,
-  type Provider,
   type SqlConfig
 } from '../domain';
 import { success } from '../utils/output';
@@ -47,11 +47,7 @@ export async function runDiff(): Promise<void> {
   const schemaPath = resolveConfigPath(root, config.schemaFile);
   const statePath = resolveConfigPath(root, config.stateFile);
 
-  if (config.provider && config.provider !== 'postgres' && config.provider !== 'supabase') {
-    throw new Error(`Unsupported provider '${config.provider}'.`);
-  }
-
-  const provider: Provider = (config.provider ?? 'postgres') as Provider;
+  const { provider } = resolveProvider(config.provider);
 
   const schemaSource = await readTextFile(schemaPath);
   const schema = await parseSchema(schemaSource);
