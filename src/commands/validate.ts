@@ -1,12 +1,15 @@
 import { Command } from 'commander';
 import path from 'path';
-import { SchemaValidationError } from '../core/errors';
 import { fileExists, readJsonFile, readTextFile } from '../core/fs';
-import { parseSchema } from '../core/parser';
 import { getConfigPath, getProjectRoot } from '../core/paths';
-import { loadState } from '../core/state-manager';
-import { toValidationReport, validateSchemaChanges } from '../core/validate';
-import { validateSchema } from '../core/validator';
+import {
+  createSchemaValidationError,
+  loadState,
+  parseSchema,
+  toValidationReport,
+  validateSchema,
+  validateSchemaChanges
+} from '../domain';
 import { success } from '../utils/output';
 
 export interface ValidateOptions {
@@ -45,19 +48,19 @@ export async function runValidate(options: ValidateOptions = {}): Promise<void> 
   const statePath = resolveConfigPath(root, config.stateFile);
 
   const schemaSource = await readTextFile(schemaPath);
-  const schema = parseSchema(schemaSource);
+  const schema = await parseSchema(schemaSource);
   try {
-    validateSchema(schema);
+    await validateSchema(schema);
   } catch (error) {
     if (error instanceof Error) {
-      throw new SchemaValidationError(error.message);
+      throw await createSchemaValidationError(error.message);
     }
     throw error;
   }
 
   const previousState = await loadState(statePath);
-  const findings = validateSchemaChanges(previousState, schema);
-  const report = toValidationReport(findings);
+  const findings = await validateSchemaChanges(previousState, schema);
+  const report = await toValidationReport(findings);
 
   if (options.json) {
     console.log(JSON.stringify(report, null, 2));

@@ -7,7 +7,7 @@ import { runGenerate } from './commands/generate';
 import { runImport } from './commands/import';
 import { runInit } from './commands/init';
 import { runValidate } from './commands/validate';
-import { SchemaValidationError } from './core/errors';
+import { isSchemaValidationError } from './domain';
 import { error as printError } from './utils/output';
 
 const program = new Command();
@@ -17,8 +17,8 @@ program
   .description('CLI tool for schema management and SQL generation')
   .version(pkg.version);
 
-function handleError(error: unknown): void {
-  if (error instanceof SchemaValidationError) {
+async function handleError(error: unknown): Promise<void> {
+  if ((await isSchemaValidationError(error)) && error instanceof Error) {
     printError(error.message);
     process.exitCode = 2;
     return;
@@ -41,7 +41,7 @@ program
     try {
       await runInit();
     } catch (error) {
-      handleError(error);
+      await handleError(error);
     }
   });
 
@@ -53,7 +53,7 @@ program
     try {
       await runGenerate(options);
     } catch (error) {
-      handleError(error);
+      await handleError(error);
     }
   });
 
@@ -64,7 +64,7 @@ program
     try {
       await runDiff();
     } catch (error) {
-      handleError(error);
+      await handleError(error);
     }
   });
 
@@ -77,7 +77,7 @@ program
     try {
       await runImport(targetPath, options);
     } catch (error) {
-      handleError(error);
+      await handleError(error);
     }
   });
 
@@ -89,7 +89,7 @@ program
     try {
       await runValidate(options);
     } catch (error) {
-      handleError(error);
+      await handleError(error);
     }
   });
 

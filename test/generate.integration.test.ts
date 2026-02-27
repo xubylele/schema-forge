@@ -1,7 +1,7 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { promises as fs } from 'fs';
-import path from 'path';
 import os from 'os';
+import path from 'path';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { runGenerate } from '../src/commands/generate';
 
 async function readJson<T>(filePath: string): Promise<T> {
@@ -364,5 +364,98 @@ describe('runGenerate integration', () => {
       tables: { users: { columns: { created_at: { default?: string } } } };
     }>(statePath);
     expect(state.tables.users.columns.created_at.default).toBe('now()');
+  });
+
+  it('forwards supabase provider from config to SQL generator', async () => {
+    const schemaForgeDir = path.join(tempDir, 'schemaforge');
+    const outputDir = path.join(tempDir, 'migrations');
+
+    await fs.mkdir(schemaForgeDir, { recursive: true });
+
+    const schemaPath = path.join(schemaForgeDir, 'schema.sf');
+    const configPath = path.join(schemaForgeDir, 'config.json');
+
+    await fs.writeFile(
+      schemaPath,
+      `table users {\n  id uuid pk\n}\n`,
+      'utf-8'
+    );
+
+    await fs.writeFile(
+      configPath,
+      JSON.stringify(
+        {
+          provider: 'supabase',
+          outputDir: 'migrations',
+          schemaFile: 'schemaforge/schema.sf',
+          stateFile: 'schemaforge/state.json',
+        },
+        null,
+        2
+      ),
+      'utf-8'
+    );
+
+    const logSpy = vi.spyOn(console, 'log').mockImplementation(() => { });
+
+    await runGenerate({ name: 'Supabase Provider' });
+
+    logSpy.mockRestore();
+
+    const migrationFiles = await fs.readdir(outputDir);
+    expect(migrationFiles).toHaveLength(1);
+
+    const migrationContents = await fs.readFile(
+      path.join(outputDir, migrationFiles[0]),
+      'utf-8'
+    );
+
+    expect(migrationContents).toContain('gen_random_uuid()');
+  });
+
+  it('defaults provider to postgres when provider is omitted', async () => {
+    const schemaForgeDir = path.join(tempDir, 'schemaforge');
+    const outputDir = path.join(tempDir, 'migrations');
+
+    await fs.mkdir(schemaForgeDir, { recursive: true });
+
+    const schemaPath = path.join(schemaForgeDir, 'schema.sf');
+    const configPath = path.join(schemaForgeDir, 'config.json');
+
+    await fs.writeFile(
+      schemaPath,
+      `table users {\n  id uuid pk\n}\n`,
+      'utf-8'
+    );
+
+    await fs.writeFile(
+      configPath,
+      JSON.stringify(
+        {
+          outputDir: 'migrations',
+          schemaFile: 'schemaforge/schema.sf',
+          stateFile: 'schemaforge/state.json',
+        },
+        null,
+        2
+      ),
+      'utf-8'
+    );
+
+    const logSpy = vi.spyOn(console, 'log').mockImplementation(() => { });
+
+    await runGenerate({ name: 'Default Provider' });
+
+    logSpy.mockRestore();
+
+    const migrationFiles = await fs.readdir(outputDir);
+    expect(migrationFiles).toHaveLength(1);
+
+    const migrationContents = await fs.readFile(
+      path.join(outputDir, migrationFiles[0]),
+      'utf-8'
+    );
+
+    expect(migrationContents).not.toContain('gen_random_uuid()');
   });
 });

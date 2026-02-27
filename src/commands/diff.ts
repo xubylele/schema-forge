@@ -1,13 +1,17 @@
 import { Command } from 'commander';
 import path from 'path';
-import { diffSchemas } from '../core/diff';
-import { SchemaValidationError } from '../core/errors';
 import { fileExists, readJsonFile, readTextFile } from '../core/fs';
-import { parseSchema } from '../core/parser';
 import { getConfigPath, getProjectRoot } from '../core/paths';
-import { loadState } from '../core/state-manager';
-import { validateSchema } from '../core/validator';
-import { generateSql, Provider, SqlConfig } from '../generator/sql-generator';
+import { resolveProvider } from '../core/provider';
+import {
+  createSchemaValidationError,
+  diffSchemas,
+  generateSql,
+  loadState,
+  parseSchema,
+  validateSchema,
+  type SqlConfig
+} from '../domain';
 import { success } from '../utils/output';
 
 interface DiffConfig {
@@ -43,32 +47,28 @@ export async function runDiff(): Promise<void> {
   const schemaPath = resolveConfigPath(root, config.schemaFile);
   const statePath = resolveConfigPath(root, config.stateFile);
 
-  if (config.provider && config.provider !== 'postgres' && config.provider !== 'supabase') {
-    throw new Error(`Unsupported provider '${config.provider}'.`);
-  }
-
-  const provider: Provider = (config.provider ?? 'postgres') as Provider;
+  const { provider } = resolveProvider(config.provider);
 
   const schemaSource = await readTextFile(schemaPath);
-  const schema = parseSchema(schemaSource);
+  const schema = await parseSchema(schemaSource);
   try {
-    validateSchema(schema);
+    await validateSchema(schema);
   } catch (error) {
     if (error instanceof Error) {
-      throw new SchemaValidationError(error.message);
+      throw await createSchemaValidationError(error.message);
     }
     throw error;
   }
 
   const previousState = await loadState(statePath);
-  const diff = diffSchemas(previousState, schema);
+  const diff = await diffSchemas(previousState, schema);
 
   if (diff.operations.length === 0) {
     success('No changes detected');
     return;
   }
 
-  const sql = generateSql(diff, provider, config.sql);
+  const sql = await generateSql(diff, provider, config.sql);
   console.log(sql);
 }
 
