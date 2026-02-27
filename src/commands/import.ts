@@ -1,11 +1,8 @@
 import { Command } from 'commander';
 import path from 'path';
+import { applySqlOps, loadMigrationSqlInput, parseMigrationSql, schemaToDsl } from '../domain';
 import { fileExists, readJsonFile, writeTextFile } from '../core/fs';
 import { getConfigPath, getProjectRoot, getSchemaFilePath } from '../core/paths';
-import { applySqlOps } from '../core/sql/apply-ops';
-import { loadMigrationSqlInput } from '../core/sql/load-migrations';
-import { parseMigrationSql } from '../core/sql/parse-migration';
-import { schemaToDsl } from '../core/sql/schema-to-dsl';
 import { info, success, warning } from '../utils/output';
 
 interface ImportConfig {
@@ -33,7 +30,7 @@ export async function runImport(inputPath: string, options: ImportOptions = {}):
   const parseWarnings: Array<{ statement: string; reason: string }> = [];
 
   for (const input of inputs) {
-    const result = parseMigrationSql(input.sql);
+    const result = await parseMigrationSql(input.sql);
     allOps.push(...result.ops);
     parseWarnings.push(...result.warnings.map(item => ({
       statement: `[${path.basename(input.filePath)}] ${item.statement}`,
@@ -41,8 +38,8 @@ export async function runImport(inputPath: string, options: ImportOptions = {}):
     })));
   }
 
-  const applied = applySqlOps(allOps);
-  const dsl = schemaToDsl(applied.schema);
+  const applied = await applySqlOps(allOps);
+  const dsl = await schemaToDsl(applied.schema);
 
   let targetPath = options.out;
   if (!targetPath) {

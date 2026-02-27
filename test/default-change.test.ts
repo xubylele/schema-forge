@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { diffSchemas } from '../src/core/diff';
-import { DatabaseSchema, StateFile } from '../src/types/types';
+import { diffSchemas } from '@xubylele/schema-forge-core';
+import type { DatabaseSchema, StateFile } from '../src/domain';
 
 describe('default value change detection', () => {
   it('detects default added (null -> now())', () => {

@@ -1,10 +1,10 @@
 import { describe, it, expect } from 'vitest';
 import {
   generateSql,
-  Provider,
-  SqlConfig,
-} from '../src/generator/sql-generator';
-import { DiffResult, Table, Column } from '../src/types/types';
+  type Provider,
+  type SqlConfig
+} from '@xubylele/schema-forge-core';
+import type { Column, DiffResult, Table } from '../src/domain';
 
 describe('SQL Generator', () => {
   describe('generateSql', () => {

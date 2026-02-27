@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { parseMigrationSql } from '../../src/core/sql/parse-migration';
-import { splitSqlStatements } from '../../src/core/sql/split-statements';
+import { parseMigrationSql, splitSqlStatements } from '@xubylele/schema-forge-core';
 
 describe('splitSqlStatements', () => {
   it('does not split semicolon inside single-quoted literal', () => {

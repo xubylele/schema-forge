@@ -1,13 +1,17 @@
 import { Command } from 'commander';
 import path from 'path';
-import { diffSchemas } from '../core/diff';
-import { SchemaValidationError } from '../core/errors';
+import {
+  createSchemaValidationError,
+  diffSchemas,
+  generateSql,
+  loadState,
+  parseSchema,
+  validateSchema,
+  type Provider,
+  type SqlConfig
+} from '../domain';
 import { fileExists, readJsonFile, readTextFile } from '../core/fs';
-import { parseSchema } from '../core/parser';
 import { getConfigPath, getProjectRoot } from '../core/paths';
-import { loadState } from '../core/state-manager';
-import { validateSchema } from '../core/validator';
-import { generateSql, Provider, SqlConfig } from '../generator/sql-generator';
 import { success } from '../utils/output';
 
 interface DiffConfig {
@@ -50,25 +54,25 @@ export async function runDiff(): Promise<void> {
   const provider: Provider = (config.provider ?? 'postgres') as Provider;
 
   const schemaSource = await readTextFile(schemaPath);
-  const schema = parseSchema(schemaSource);
+  const schema = await parseSchema(schemaSource);
   try {
-    validateSchema(schema);
+    await validateSchema(schema);
   } catch (error) {
     if (error instanceof Error) {
-      throw new SchemaValidationError(error.message);
+      throw await createSchemaValidationError(error.message);
     }
     throw error;
   }
 
   const previousState = await loadState(statePath);
-  const diff = diffSchemas(previousState, schema);
+  const diff = await diffSchemas(previousState, schema);
 
   if (diff.operations.length === 0) {
     success('No changes detected');
     return;
   }
 
-  const sql = generateSql(diff, provider, config.sql);
+  const sql = await generateSql(diff, provider, config.sql);
   console.log(sql);
 }
 

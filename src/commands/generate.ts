@@ -1,14 +1,20 @@
 import { Command } from 'commander';
 import path from 'path';
-import { diffSchemas } from '../core/diff';
-import { SchemaValidationError } from '../core/errors';
+import {
+  createSchemaValidationError,
+  diffSchemas,
+  generateSql,
+  loadState,
+  parseSchema,
+  saveState,
+  schemaToState,
+  validateSchema,
+  type Provider,
+  type SqlConfig
+} from '../domain';
 import { ensureDir, fileExists, readJsonFile, readTextFile, writeTextFile } from '../core/fs';
-import { parseSchema } from '../core/parser';
 import { getConfigPath, getProjectRoot } from '../core/paths';
-import { loadState, saveState, schemaToState } from '../core/state-manager';
 import { nowTimestamp, slugifyName } from '../core/utils';
-import { validateSchema } from '../core/validator';
-import { generateSql, Provider, SqlConfig } from '../generator/sql-generator';
 import { info, success } from '../utils/output';
 
 export interface GenerateOptions {
@@ -66,25 +72,25 @@ export async function runGenerate(options: GenerateOptions): Promise<void> {
   info('Generating SQL...');
 
   const schemaSource = await readTextFile(schemaPath);
-  const schema = parseSchema(schemaSource);
+  const schema = await parseSchema(schemaSource);
   try {
-    validateSchema(schema);
+    await validateSchema(schema);
   } catch (error) {
     if (error instanceof Error) {
-      throw new SchemaValidationError(error.message);
+      throw await createSchemaValidationError(error.message);
     }
     throw error;
   }
 
   const previousState = await loadState(statePath);
-  const diff = diffSchemas(previousState, schema);
+  const diff = await diffSchemas(previousState, schema);
 
   if (diff.operations.length === 0) {
     info('No changes detected');
     return;
   }
 
-  const sql = generateSql(diff, provider, config.sql);
+  const sql = await generateSql(diff, provider, config.sql);
   const timestamp = nowTimestamp();
   const slug = slugifyName(options.name ?? 'migration');
   const fileName = `${timestamp}-${slug}.sql`;
