@@ -1,5 +1,7 @@
 import { Command } from 'commander';
 import path from 'path';
+import { fileExists, readJsonFile, readTextFile } from '../core/fs';
+import { getConfigPath, getProjectRoot } from '../core/paths';
 import {
   createSchemaValidationError,
   diffSchemas,
@@ -10,8 +12,6 @@ import {
   type Provider,
   type SqlConfig
 } from '../domain';
-import { fileExists, readJsonFile, readTextFile } from '../core/fs';
-import { getConfigPath, getProjectRoot } from '../core/paths';
 import { success } from '../utils/output';
 
 interface DiffConfig {

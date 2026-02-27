@@ -1,9 +1,9 @@
+import { parseSchema } from '@xubylele/schema-forge-core';
 import { promises as fs } from 'fs';
 import os from 'os';
 import path from 'path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { runImport } from '../src/commands/import';
-import { parseSchema } from '@xubylele/schema-forge-core';
 
 describe('runImport', () => {
   let tempDir: string;

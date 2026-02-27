@@ -1,5 +1,8 @@
 import { Command } from 'commander';
 import path from 'path';
+import { ensureDir, fileExists, readJsonFile, readTextFile, writeTextFile } from '../core/fs';
+import { getConfigPath, getProjectRoot } from '../core/paths';
+import { nowTimestamp, slugifyName } from '../core/utils';
 import {
   createSchemaValidationError,
   diffSchemas,
@@ -12,9 +15,6 @@ import {
   type Provider,
   type SqlConfig
 } from '../domain';
-import { ensureDir, fileExists, readJsonFile, readTextFile, writeTextFile } from '../core/fs';
-import { getConfigPath, getProjectRoot } from '../core/paths';
-import { nowTimestamp, slugifyName } from '../core/utils';
 import { info, success } from '../utils/output';
 
 export interface GenerateOptions {

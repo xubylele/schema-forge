@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest';
 import { parseMigrationSql, splitSqlStatements } from '@xubylele/schema-forge-core';
+import { describe, expect, it } from 'vitest';
 
 describe('splitSqlStatements', () => {
   it('does not split semicolon inside single-quoted literal', () => {
@@ -168,7 +168,7 @@ describe('parseMigrationSql', () => {
     const result = parseMigrationSql(sql);
 
     expect(result.warnings).toHaveLength(0);
-    expect(result.ops.map(op => op.kind)).toEqual([
+    expect(result.ops.map((op: { kind: string }) => op.kind)).toEqual([
       'CREATE_TABLE',
       'SET_NOT_NULL',
       'ALTER_COLUMN_TYPE'

@@ -1,9 +1,7 @@
-import { describe, it, expect } from 'vitest';
 import {
-  generateSql,
-  type Provider,
-  type SqlConfig
+  generateSql
 } from '@xubylele/schema-forge-core';
+import { describe, expect, it } from 'vitest';
 import type { Column, DiffResult, Table } from '../src/domain';
 
 describe('SQL Generator', () => {

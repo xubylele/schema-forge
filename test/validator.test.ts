@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest';
 import { validateSchema } from '@xubylele/schema-forge-core';
+import { describe, expect, it } from 'vitest';
 import type { DatabaseSchema } from '../src/domain';
 
 describe('validateSchema', () => {

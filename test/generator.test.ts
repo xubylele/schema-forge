@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest';
 import { generateSql } from '@xubylele/schema-forge-core';
+import { describe, expect, it } from 'vitest';
 import type { Column, DiffResult, Table } from '../src/domain';
 
 describe('Generator - Minimal Tests', () => {

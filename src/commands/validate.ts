@@ -1,5 +1,7 @@
 import { Command } from 'commander';
 import path from 'path';
+import { fileExists, readJsonFile, readTextFile } from '../core/fs';
+import { getConfigPath, getProjectRoot } from '../core/paths';
 import {
   createSchemaValidationError,
   loadState,
@@ -8,8 +10,6 @@ import {
   validateSchema,
   validateSchemaChanges
 } from '../domain';
-import { fileExists, readJsonFile, readTextFile } from '../core/fs';
-import { getConfigPath, getProjectRoot } from '../core/paths';
 import { success } from '../utils/output';
 
 export interface ValidateOptions {

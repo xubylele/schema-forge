@@ -1,6 +1,5 @@
-import { describe, it, expect } from 'vitest';
 import { parseSchema } from '@xubylele/schema-forge-core';
-import type { DatabaseSchema } from '../src/domain';
+import { describe, expect, it } from 'vitest';
 
 describe('parseSchema', () => {
   it('should parse a simple table with basic columns', () => {

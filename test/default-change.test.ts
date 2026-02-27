@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest';
 import { diffSchemas } from '@xubylele/schema-forge-core';
+import { describe, expect, it } from 'vitest';
 import type { DatabaseSchema, StateFile } from '../src/domain';
 
 describe('default value change detection', () => {

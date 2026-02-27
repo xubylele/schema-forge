@@ -1,8 +1,8 @@
 import { Command } from 'commander';
 import path from 'path';
-import { applySqlOps, loadMigrationSqlInput, parseMigrationSql, schemaToDsl } from '../domain';
 import { fileExists, readJsonFile, writeTextFile } from '../core/fs';
 import { getConfigPath, getProjectRoot, getSchemaFilePath } from '../core/paths';
+import { applySqlOps, loadMigrationSqlInput, parseMigrationSql, schemaToDsl } from '../domain';
 import { info, success, warning } from '../utils/output';
 
 interface ImportConfig {
@@ -32,7 +32,7 @@ export async function runImport(inputPath: string, options: ImportOptions = {}):
   for (const input of inputs) {
     const result = await parseMigrationSql(input.sql);
     allOps.push(...result.ops);
-    parseWarnings.push(...result.warnings.map(item => ({
+    parseWarnings.push(...result.warnings.map((item: { statement: string; reason: string }) => ({
       statement: `[${path.basename(input.filePath)}] ${item.statement}`,
       reason: item.reason
     })));

@@ -1,8 +1,8 @@
-import { describe, expect, it } from 'vitest';
 import {
   parseSchema,
   validateSchemaChanges
 } from '@xubylele/schema-forge-core';
+import { describe, expect, it } from 'vitest';
 import type { DatabaseSchema, StateFile } from '../src/domain';
 
 describe('validateSchemaChanges', () => {
