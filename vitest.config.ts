@@ -1,7 +1,7 @@
 import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vitest/config';
 
-const schemaForgeCoreEntry = fileURLToPath(new URL('../schema-forge-core/src/index.ts', import.meta.url));
+const schemaForgeCoreEntry = '@xubylele/schema-forge-core';
 
 export default defineConfig({
   resolve: {

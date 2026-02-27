@@ -230,7 +230,7 @@ describe('parseSchema', () => {
 
     const result = parseSchema(source);
 
-    const columnNames = result.tables.users.columns.map(c => c.name);
+    const columnNames = result.tables.users.columns.map((c: { name: string }) => c.name);
     expect(columnNames).toEqual([
       'id',
       'created_at',
@@ -260,7 +260,7 @@ describe('parseSchema', () => {
     const result = parseSchema(source);
 
     expect(result.tables.test.columns).toHaveLength(10);
-    expect(result.tables.test.columns.map(c => c.type)).toEqual([
+    expect(result.tables.test.columns.map((c: { name: string; type: string }) => c.type)).toEqual([
       'uuid',
       'varchar',
       'text',
@@ -435,14 +435,14 @@ describe('parseSchema', () => {
     expect(result.tables.comments.columns).toHaveLength(5);
 
     // Verify specific columns
-    expect(result.tables.posts.columns.find(c => c.name === 'user_id')).toEqual({
+    expect(result.tables.posts.columns.find((c: { name: string; type: string; nullable?: boolean; foreignKey?: { table: string; column: string } }) => c.name === 'user_id')).toEqual({
       name: 'user_id',
       type: 'uuid',
       nullable: true,
       foreignKey: { table: 'users', column: 'id' }
     });
 
-    expect(result.tables.posts.columns.find(c => c.name === 'published')).toEqual({
+    expect(result.tables.posts.columns.find((c: { name: string; type: string; nullable?: boolean; default?: string }) => c.name === 'published')).toEqual({
       name: 'published',
       type: 'boolean',
       nullable: true,
@@ -475,7 +475,7 @@ describe('parseSchema', () => {
     });
 
     // profile_id with fk
-    const profileIdCol = result.tables.users.columns.find(c => c.name === 'profile_id');
+    const profileIdCol = result.tables.users.columns.find((c: { name: string; type: string; nullable?: boolean; foreignKey?: { table: string; column: string } }) => c.name === 'profile_id');
     expect(profileIdCol).toEqual({
       name: 'profile_id',
       type: 'uuid',
@@ -484,7 +484,7 @@ describe('parseSchema', () => {
     });
 
     // created_at with default
-    const createdAtCol = result.tables.users.columns.find(c => c.name === 'created_at');
+    const createdAtCol = result.tables.users.columns.find((c: { name: string; type: string; nullable?: boolean; default?: string }) => c.name === 'created_at');
     expect(createdAtCol?.default).toBe('now()');
   });
 });
