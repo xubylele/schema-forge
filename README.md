@@ -2,6 +2,8 @@
 
 A modern CLI tool for database schema management with a clean DSL and automatic SQL migration generation.
 
+**npm package:** [@xubylele/schema-forge](https://www.npmjs.com/package/@xubylele/schema-forge)
+
 ## Features
 
 - **Simple DSL** - Define your schema with a clean, intuitive syntax
