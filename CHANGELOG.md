@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.5.1
+
+### Patch Changes
+
+- 3986c45: # Refactor: update schema-forge-core dependency to version 1.0.5 and adjust README
+
+  - Updated @xubylele/schema-forge-core dependency to v1.0.5
+  - Adjusted README to reflect latest changes and usage
+
 ## 1.5.0
 
 ### Minor Changes
