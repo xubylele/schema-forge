@@ -27,4 +27,4 @@ jobs:
         run: npm ci
 
       - name: Validate pending changesets
-        run: npx changeset status --since=origin/pre-release
+        run: npx changeset status --since=origin/main
