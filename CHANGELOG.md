@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.5.2
+
+### Patch Changes
+
+- 9346c69: # Chore: update @xubylele/schema-forge-core dependency to version 1.1.0
+
+  - Updated @xubylele/schema-forge-core to v1.1.0 in package.json and package-lock.json
+  - Ensured compatibility with latest core improvements
+
 ## 1.5.1
 
 ### Patch Changes
