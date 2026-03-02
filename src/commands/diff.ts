@@ -13,10 +13,11 @@ import {
   validateSchemaChanges,
   type SqlConfig
 } from '../domain';
-import { success } from '../utils/output';
+import { success, forceWarning } from '../utils/output';
 
 export interface DiffOptions {
   safe?: boolean;
+  force?: boolean;
 }
 
 interface DiffConfig {
@@ -33,6 +34,11 @@ function resolveConfigPath(root: string, targetPath: string): string {
 }
 
 export async function runDiff(options: DiffOptions = {}): Promise<void> {
+  // Validate flag exclusivity
+  if (options.safe && options.force) {
+    throw new Error('Cannot use --safe and --force flags together. Choose one:\n  --safe: Block destructive operations\n  --force: Bypass safety checks');
+  }
+
   const root = getProjectRoot();
   const configPath = getConfigPath(root);
 
@@ -68,8 +74,13 @@ export async function runDiff(options: DiffOptions = {}): Promise<void> {
   const previousState = await loadState(statePath);
   const diff = await diffSchemas(previousState, schema);
 
+  // Handle --force flag: warn and bypass safety checks
+  if (options.force) {
+    forceWarning('Are you sure to use --force? This option will bypass safety checks for destructive operations.');
+  }
+
   // Check for destructive operations in safe mode
-  if (options.safe && diff.operations.length > 0) {
+  if (options.safe && !options.force && diff.operations.length > 0) {
     const findings = await validateSchemaChanges(previousState, schema);
     const destructiveFindings = findings.filter(f => f.severity === 'error');
 

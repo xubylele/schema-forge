@@ -14,7 +14,19 @@ program
   .name('schema-forge')
   .description('CLI tool for schema management and SQL generation')
   .version(pkg.version)
-  .option('--safe', 'Prevent execution of destructive operations');
+  .option('--safe', 'Prevent execution of destructive operations')
+  .option('--force', 'Force execution by bypassing safety checks');
+
+interface GlobalOptions {
+  safe?: boolean;
+  force?: boolean;
+}
+
+function validateFlagExclusivity(options: GlobalOptions): void {
+  if (options.safe && options.force) {
+    throw new Error('Cannot use --safe and --force flags together. Choose one:\n  --safe: Block destructive operations\n  --force: Bypass safety checks');
+  }
+}
 
 async function handleError(error: unknown): Promise<void> {
   if ((await isSchemaValidationError(error)) && error instanceof Error) {
@@ -50,7 +62,9 @@ program
   .option('--name <string>', 'Schema name to generate')
   .action(async (options) => {
     try {
-      await runGenerate(options);
+      const globalOptions = program.opts();
+      validateFlagExclusivity(globalOptions);
+      await runGenerate({ ...options, ...globalOptions });
     } catch (error) {
       await handleError(error);
     }
@@ -61,7 +75,9 @@ program
   .description('Compare two schema versions and generate migration SQL')
   .action(async () => {
     try {
-      await runDiff();
+      const globalOptions = program.opts();
+      validateFlagExclusivity(globalOptions);
+      await runDiff(globalOptions);
     } catch (error) {
       await handleError(error);
     }

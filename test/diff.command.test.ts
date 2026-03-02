@@ -293,4 +293,66 @@ describe('runDiff --safe flag', () => {
 
     expect(sql).toContain('DROP TABLE users');
   });
+
+  it('succeeds with --force when dropping a table', async () => {
+    await setupProject(
+      'table posts {\n  id uuid pk\n}\n',
+      JSON.stringify({
+        version: 1,
+        tables: {
+          users: {
+            columns: {
+              id: { type: 'uuid', primaryKey: true },
+            },
+          },
+          posts: {
+            columns: {
+              id: { type: 'uuid', primaryKey: true },
+            },
+          },
+        },
+      }, null, 2)
+    );
+
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => { });
+    const logSpy = vi.spyOn(console, 'log').mockImplementation(() => { });
+
+    await runDiff({ force: true });
+
+    const sql = String(logSpy.mock.calls[0]?.[0] ?? '');
+    const errorOutput = errorSpy.mock.calls.map(call => String(call[0])).join('\n');
+
+    errorSpy.mockRestore();
+    logSpy.mockRestore();
+
+    expect(errorOutput).toContain('[FORCE]');
+    expect(errorOutput).toContain('bypass safety checks');
+    expect(sql).toContain('DROP TABLE users');
+  });
+
+  it('logs force warning when --force is used', async () => {
+    await setupProject(
+      'table users {\n  id uuid pk\n  email text\n}\n',
+      JSON.stringify({
+        version: 1,
+        tables: {
+          users: {
+            columns: {
+              id: { type: 'uuid', primaryKey: true },
+            },
+          },
+        },
+      }, null, 2)
+    );
+
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => { });
+
+    await runDiff({ force: true });
+
+    const errorOutput = errorSpy.mock.calls.map(call => String(call[0])).join('\n');
+    errorSpy.mockRestore();
+
+    expect(errorOutput).toContain('[FORCE]');
+    expect(errorOutput).toContain('Are you sure to use --force');
+  });
 });

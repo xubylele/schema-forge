@@ -734,4 +734,75 @@ describe('runGenerate --safe flag', () => {
     const migrationDirExists = await fs.access(migrationDir).then(() => true).catch(() => false);
     expect(migrationDirExists).toBe(false);
   });
+
+  it('succeeds with --force when dropping a table', async () => {
+    const schemaV1 = `table users {\n  id uuid pk\n}\ntable posts {\n  id uuid pk\n}\n`;
+    const schemaV2 = `table posts {\n  id uuid pk\n}\n`;
+
+    // Initial setup with both tables
+    await setupProject(schemaV1, JSON.stringify({
+      version: 1,
+      tables: {
+        users: {
+          columns: {
+            id: { type: 'uuid', primaryKey: true },
+          },
+        },
+        posts: {
+          columns: {
+            id: { type: 'uuid', primaryKey: true },
+          },
+        },
+      },
+    }, null, 2));
+
+    // Now update schema to drop the users table
+    const schemaPath = path.join(tempDir, 'schemaforge', 'schema.sf');
+    await fs.writeFile(schemaPath, schemaV2, 'utf-8');
+
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => { });
+    const infoSpy = vi.spyOn(console, 'log').mockImplementation(() => { });
+
+    await runGenerate({ force: true });
+
+    const errorOutput = errorSpy.mock.calls.map(call => String(call[0])).join('\n');
+
+    errorSpy.mockRestore();
+    infoSpy.mockRestore();
+
+    expect(errorOutput).toContain('[FORCE]');
+    expect(errorOutput).toContain('bypass safety checks');
+
+    const migrationDir = path.join(tempDir, 'migrations');
+    const migrationFiles = await fs.readdir(migrationDir);
+    expect(migrationFiles.length).toBeGreaterThan(0);
+  });
+
+  it('logs force warning when --force is used', async () => {
+    await setupProject(
+      'table users {\n  id uuid pk\n  email text\n}\n',
+      JSON.stringify({
+        version: 1,
+        tables: {
+          users: {
+            columns: {
+              id: { type: 'uuid', primaryKey: true },
+            },
+          },
+        },
+      }, null, 2)
+    );
+
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => { });
+    const infoSpy = vi.spyOn(console, 'log').mockImplementation(() => { });
+
+    await runGenerate({ force: true });
+
+    const errorOutput = errorSpy.mock.calls.map(call => String(call[0])).join('\n');
+    errorSpy.mockRestore();
+    infoSpy.mockRestore();
+
+    expect(errorOutput).toContain('[FORCE]');
+    expect(errorOutput).toContain('Are you sure to use --force');
+  });
 });
