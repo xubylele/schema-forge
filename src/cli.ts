@@ -1,5 +1,3 @@
-#!/usr/bin/env node
-
 import { Command } from 'commander';
 import pkg from '../package.json';
 import { runDiff } from './commands/diff';
@@ -15,7 +13,8 @@ const program = new Command();
 program
   .name('schema-forge')
   .description('CLI tool for schema management and SQL generation')
-  .version(pkg.version);
+  .version(pkg.version)
+  .option('--safe', 'Prevent execution of destructive operations');
 
 async function handleError(error: unknown): Promise<void> {
   if ((await isSchemaValidationError(error)) && error instanceof Error) {

@@ -13,12 +13,14 @@ import {
   saveState,
   schemaToState,
   validateSchema,
+  validateSchemaChanges,
   type SqlConfig
 } from '../domain';
 import { info, success } from '../utils/output';
 
 export interface GenerateOptions {
   name?: string;
+  safe?: boolean;
 }
 
 interface GenerateConfig {
@@ -80,6 +82,24 @@ export async function runGenerate(options: GenerateOptions): Promise<void> {
 
   const previousState = await loadState(statePath);
   const diff = await diffSchemas(previousState, schema);
+
+  // Check for destructive operations in safe mode
+  if (options.safe && diff.operations.length > 0) {
+    const findings = await validateSchemaChanges(previousState, schema);
+    const destructiveFindings = findings.filter(f => f.severity === 'error');
+
+    if (destructiveFindings.length > 0) {
+      const errorMessages = destructiveFindings.map(f => {
+        const target = f.column ? `${f.table}.${f.column}` : f.table;
+        const typeRange = f.from && f.to ? ` (${f.from} -> ${f.to})` : '';
+        return `  - ${f.code}: ${target}${typeRange}`;
+      }).join('\n');
+
+      throw await createSchemaValidationError(
+        `Cannot proceed with --safe flag: Found ${destructiveFindings.length} destructive operation(s):\n${errorMessages}\n\nRemove --safe flag or modify schema to avoid destructive changes.`
+      );
+    }
+  }
 
   if (diff.operations.length === 0) {
     info('No changes detected');

@@ -10,9 +10,14 @@ import {
   loadState,
   parseSchema,
   validateSchema,
+  validateSchemaChanges,
   type SqlConfig
 } from '../domain';
 import { success } from '../utils/output';
+
+export interface DiffOptions {
+  safe?: boolean;
+}
 
 interface DiffConfig {
   schemaFile: string;
@@ -27,7 +32,7 @@ function resolveConfigPath(root: string, targetPath: string): string {
   return path.isAbsolute(targetPath) ? targetPath : path.join(root, targetPath);
 }
 
-export async function runDiff(): Promise<void> {
+export async function runDiff(options: DiffOptions = {}): Promise<void> {
   const root = getProjectRoot();
   const configPath = getConfigPath(root);
 
@@ -63,6 +68,24 @@ export async function runDiff(): Promise<void> {
   const previousState = await loadState(statePath);
   const diff = await diffSchemas(previousState, schema);
 
+  // Check for destructive operations in safe mode
+  if (options.safe && diff.operations.length > 0) {
+    const findings = await validateSchemaChanges(previousState, schema);
+    const destructiveFindings = findings.filter(f => f.severity === 'error');
+
+    if (destructiveFindings.length > 0) {
+      const errorMessages = destructiveFindings.map(f => {
+        const target = f.column ? `${f.table}.${f.column}` : f.table;
+        const typeRange = f.from && f.to ? ` (${f.from} -> ${f.to})` : '';
+        return `  - ${f.code}: ${target}${typeRange}`;
+      }).join('\n');
+
+      throw await createSchemaValidationError(
+        `Cannot proceed with --safe flag: Found ${destructiveFindings.length} destructive operation(s):\n${errorMessages}\n\nRemove --safe flag or modify schema to avoid destructive changes.`
+      );
+    }
+  }
+
   if (diff.operations.length === 0) {
     success('No changes detected');
     return;
@@ -75,8 +98,8 @@ export async function runDiff(): Promise<void> {
 export function createDiffCommand(): Command {
   const command = new Command('diff');
 
-  command.description('Compare two schema versions and generate migration SQL').action(async () => {
-    await runDiff();
+  command.description('Compare two schema versions and generate migration SQL').action(async (options: DiffOptions) => {
+    await runDiff(options);
   });
 
   return command;

@@ -3,6 +3,7 @@ import os from 'os';
 import path from 'path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { runGenerate } from '../src/commands/generate';
+import { isSchemaValidationError } from '../src/domain';
 
 async function readJson<T>(filePath: string): Promise<T> {
   const contents = await fs.readFile(filePath, 'utf-8');
@@ -457,5 +458,280 @@ describe('runGenerate integration', () => {
     );
 
     expect(migrationContents).not.toContain('gen_random_uuid()');
+  });
+});
+
+describe('runGenerate --safe flag', () => {
+  let tempDir: string;
+  let originalCwd: string;
+
+  beforeEach(async () => {
+    originalCwd = process.cwd();
+    tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'schemaforge-generate-safe-'));
+    process.chdir(tempDir);
+  });
+
+  afterEach(async () => {
+    process.chdir(originalCwd);
+    await fs.rm(tempDir, { recursive: true, force: true });
+  });
+
+  async function setupProject(schemaContent: string, stateContent: string): Promise<void> {
+    const schemaForgeDir = path.join(tempDir, 'schemaforge');
+    await fs.mkdir(schemaForgeDir, { recursive: true });
+
+    await fs.writeFile(
+      path.join(schemaForgeDir, 'schema.sf'),
+      schemaContent,
+      'utf-8'
+    );
+
+    await fs.writeFile(
+      path.join(schemaForgeDir, 'state.json'),
+      stateContent,
+      'utf-8'
+    );
+
+    await fs.writeFile(
+      path.join(schemaForgeDir, 'config.json'),
+      JSON.stringify({
+        outputDir: 'migrations',
+        schemaFile: 'schemaforge/schema.sf',
+        stateFile: 'schemaforge/state.json',
+      }, null, 2),
+      'utf-8'
+    );
+  }
+
+  it('throws error with --safe when dropping a table', async () => {
+    await setupProject(
+      'table posts {\n  id uuid pk\n}\n',
+      JSON.stringify({
+        version: 1,
+        tables: {
+          users: {
+            columns: {
+              id: { type: 'uuid', primaryKey: true },
+            },
+          },
+          posts: {
+            columns: {
+              id: { type: 'uuid', primaryKey: true },
+            },
+          },
+        },
+      }, null, 2)
+    );
+
+    let error: Error | null = null;
+    try {
+      await runGenerate({ safe: true });
+    } catch (err) {
+      error = err as Error;
+    }
+
+    expect(error).not.toBeNull();
+    expect(await isSchemaValidationError(error)).toBe(true);
+    expect(error?.message).toContain('Cannot proceed with --safe flag');
+    expect(error?.message).toContain('DROP_TABLE');
+    expect(error?.message).toContain('users');
+
+    // Verify no migration file was created
+    const migrationDir = path.join(tempDir, 'migrations');
+    const migrationDirExists = await fs.access(migrationDir).then(() => true).catch(() => false);
+    expect(migrationDirExists).toBe(false);
+  });
+
+  it('throws error with --safe when dropping a column', async () => {
+    await setupProject(
+      'table users {\n  id uuid pk\n}\n',
+      JSON.stringify({
+        version: 1,
+        tables: {
+          users: {
+            columns: {
+              id: { type: 'uuid', primaryKey: true },
+              email: { type: 'text' },
+            },
+          },
+        },
+      }, null, 2)
+    );
+
+    let error: Error | null = null;
+    try {
+      await runGenerate({ safe: true });
+    } catch (err) {
+      error = err as Error;
+    }
+
+    expect(error).not.toBeNull();
+    expect(await isSchemaValidationError(error)).toBe(true);
+    expect(error?.message).toContain('Cannot proceed with --safe flag');
+    expect(error?.message).toContain('DROP_COLUMN');
+    expect(error?.message).toContain('users.email');
+  });
+
+  it('throws error with --safe when changing column type destructively', async () => {
+    await setupProject(
+      'table users {\n  id uuid pk\n  age int\n}\n',
+      JSON.stringify({
+        version: 1,
+        tables: {
+          users: {
+            columns: {
+              id: { type: 'uuid', primaryKey: true },
+              age: { type: 'bigint' },
+            },
+          },
+        },
+      }, null, 2)
+    );
+
+    let error: Error | null = null;
+    try {
+      await runGenerate({ safe: true });
+    } catch (err) {
+      error = err as Error;
+    }
+
+    expect(error).not.toBeNull();
+    expect(await isSchemaValidationError(error)).toBe(true);
+    expect(error?.message).toContain('Cannot proceed with --safe flag');
+    expect(error?.message).toContain('ALTER_COLUMN_TYPE');
+  });
+
+  it('succeeds with --safe when only adding columns', async () => {
+    await setupProject(
+      'table users {\n  id uuid pk\n  email text\n}\n',
+      JSON.stringify({
+        version: 1,
+        tables: {
+          users: {
+            columns: {
+              id: { type: 'uuid', primaryKey: true },
+            },
+          },
+        },
+      }, null, 2)
+    );
+
+    const logSpy = vi.spyOn(console, 'log').mockImplementation(() => { });
+
+    await runGenerate({ safe: true, name: 'add-email' });
+
+    logSpy.mockRestore();
+
+    const migrationDir = path.join(tempDir, 'migrations');
+    const migrationFiles = await fs.readdir(migrationDir);
+    expect(migrationFiles).toHaveLength(1);
+
+    const migrationContents = await fs.readFile(
+      path.join(migrationDir, migrationFiles[0]),
+      'utf-8'
+    );
+    expect(migrationContents).toContain('ALTER TABLE users ADD COLUMN email text;');
+
+    // Verify state was updated
+    const statePath = path.join(tempDir, 'schemaforge', 'state.json');
+    const state = await readJson<{ tables: { users: { columns: Record<string, unknown> } } }>(statePath);
+    expect(state.tables.users.columns).toHaveProperty('email');
+  });
+
+  it('succeeds with --safe when changing column type safely (int to bigint)', async () => {
+    await setupProject(
+      'table users {\n  id uuid pk\n  age bigint\n}\n',
+      JSON.stringify({
+        version: 1,
+        tables: {
+          users: {
+            columns: {
+              id: { type: 'uuid', primaryKey: true },
+              age: { type: 'int' },
+            },
+          },
+        },
+      }, null, 2)
+    );
+
+    const logSpy = vi.spyOn(console, 'log').mockImplementation(() => { });
+
+    await runGenerate({ safe: true, name: 'widen-age' });
+
+    logSpy.mockRestore();
+
+    const migrationDir = path.join(tempDir, 'migrations');
+    const migrationFiles = await fs.readdir(migrationDir);
+    expect(migrationFiles).toHaveLength(1);
+
+    const migrationContents = await fs.readFile(
+      path.join(migrationDir, migrationFiles[0]),
+      'utf-8'
+    );
+    expect(migrationContents).toContain('ALTER TABLE users ALTER COLUMN age TYPE bigint');
+  });
+
+  it('succeeds without --safe when dropping a table', async () => {
+    await setupProject(
+      'table posts {\n  id uuid pk\n}\n',
+      JSON.stringify({
+        version: 1,
+        tables: {
+          users: {
+            columns: {
+              id: { type: 'uuid', primaryKey: true },
+            },
+          },
+          posts: {
+            columns: {
+              id: { type: 'uuid', primaryKey: true },
+            },
+          },
+        },
+      }, null, 2)
+    );
+
+    const logSpy = vi.spyOn(console, 'log').mockImplementation(() => { });
+
+    await runGenerate({ safe: false, name: 'drop-users' });
+
+    logSpy.mockRestore();
+
+    const migrationDir = path.join(tempDir, 'migrations');
+    const migrationFiles = await fs.readdir(migrationDir);
+    expect(migrationFiles).toHaveLength(1);
+
+    const migrationContents = await fs.readFile(
+      path.join(migrationDir, migrationFiles[0]),
+      'utf-8'
+    );
+    expect(migrationContents).toContain('DROP TABLE users');
+  });
+
+  it('does not check safe mode when there are no changes', async () => {
+    await setupProject(
+      'table users {\n  id uuid pk\n}\n',
+      JSON.stringify({
+        version: 1,
+        tables: {
+          users: {
+            columns: {
+              id: { type: 'uuid', primaryKey: true },
+            },
+          },
+        },
+      }, null, 2)
+    );
+
+    const logSpy = vi.spyOn(console, 'log').mockImplementation(() => { });
+
+    await runGenerate({ safe: true });
+
+    logSpy.mockRestore();
+
+    // Should not error even with safe flag since no changes
+    const migrationDir = path.join(tempDir, 'migrations');
+    const migrationDirExists = await fs.access(migrationDir).then(() => true).catch(() => false);
+    expect(migrationDirExists).toBe(false);
   });
 });
