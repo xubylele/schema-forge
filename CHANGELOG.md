@@ -1,5 +1,75 @@
 # Changelog
 
+## 1.6.0
+
+### Minor Changes
+
+- 0069ffd: # ✨ feat(safety): add interactive confirmation prompt for destructive operations
+
+  - Introduced prompt utility module for interactive yes/no confirmations.
+  - Integrated prompt flow with safety middleware reports.
+  - When operations are classified as `DESTRUCTIVE` and `--force` is not provided:
+    - Display a summary of risky operations.
+    - Require explicit user confirmation (yes/no) before continuing.
+  - Abort execution when the user declines confirmation.
+  - Automatically skip the prompt when `CI=true` (non-interactive environments).
+  - Added integration tests using mocked stdin to validate prompt behavior, decline abort, and CI bypass.
+
+- 4057636: # ✨ feat(cli): enforce deterministic non-interactive safety behavior in CI environments
+
+  - Added explicit CI detection (`process.env.CI === "true"`).
+  - When a `DESTRUCTIVE` operation is detected in CI:
+    - Immediately fail with exit code `3` unless `--force` is explicitly provided.
+  - Disabled all interactive confirmation prompts in CI mode.
+  - Ensured exit codes are deterministic and consistent across all commands.
+  - Updated CLI help output to document CI behavior and exit code semantics.
+  - Added unit and integration tests covering:
+    - Destructive operations in CI without `--force`
+    - Successful execution in CI with `--force`
+    - Non-interactive enforcement guarantees
+
+- fc232e2: # 🧪 test(safety): implement comprehensive test matrix for safety combinations
+
+  - Added full safety behavior matrix coverage:
+    - `--safe` ON + destructive operation
+    - `--safe` OFF + destructive operation
+    - `--safe` + `--force`
+    - `CI=true` + destructive operation
+    - `CI=true` + `--force`
+  - Verified deterministic exit codes for each scenario.
+  - Added snapshot tests for standardized error and warning output.
+  - Ensured middleware, CLI layer, and CI enforcement paths are fully covered.
+  - Achieved 100% coverage for safety-related logic (classifier, middleware, prompt, and CI handling).
+
+- 6d7e667: # ✨ feat(cli): standardize global exit codes across all commands
+
+  - Defined global exit code contract:
+    - `0` → Success
+    - `1` → Validation error
+    - `2` → Drift detected (reserved for future use)
+    - `3` → Unsafe destructive change
+  - Centralized exit code handling to ensure consistency across CLI commands.
+  - Updated command execution flow to return standardized codes instead of ad-hoc exits.
+  - Aligned safety middleware and CI behavior with the new exit code contract.
+  - Added CLI integration tests to verify deterministic and consistent exit codes.
+
+- aec8944: # ✨ feat(cli): implement global `--force` flag to override safety restrictions
+
+  - Added global `--force` flag to CLI argument parser.
+  - Integrated flag into safety middleware layer.
+  - Allows explicit bypass of `--safe` restrictions when provided.
+  - Logs a clear warning message before executing potentially destructive operations.
+  - Ensures `--force` cannot be implicitly enabled in CI environments — must be explicitly passed.
+  - Added unit tests covering flag parsing, middleware behavior, and CI safeguards.
+
+- 9f42177: # ✨ feat(cli): implement global `--safe` flag to prevent destructive operations
+
+  - Added global `--safe` flag to CLI argument parser.
+  - Ensured flag is available across all commands.
+  - Propagated `safe` option through command execution context.
+  - Prepared foundation for blocking destructive operations (e.g. DROP, ALTER destructive cases).
+  - Added unit tests to validate flag parsing and context accessibility.
+
 ## 1.5.2
 
 ### Patch Changes
