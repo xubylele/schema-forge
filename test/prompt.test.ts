@@ -1,11 +1,12 @@
-import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import { Readable, Writable } from 'stream';
-import { confirmDestructiveOps } from '../src/utils/prompt';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Finding } from '../src/domain';
+import { EXIT_CODES } from '../src/utils/exitCodes';
+import { confirmDestructiveOps, hasDestructiveFindings, isCI } from '../src/utils/prompt';
 
 describe('Prompt utility', () => {
   let originalCI: string | undefined;
-  
+
   beforeEach(() => {
     originalCI = process.env.CI;
   });
@@ -60,7 +61,7 @@ describe('Prompt utility', () => {
     it('returns true when user confirms with "yes"', async () => {
       const stdin = createMockStdin(['yes']);
       const stdout = createMockStdout();
-      const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+      const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => { });
 
       const result = await confirmDestructiveOps([destructiveFinding], stdin, stdout);
 
@@ -71,7 +72,7 @@ describe('Prompt utility', () => {
     it('returns true when user confirms with "y"', async () => {
       const stdin = createMockStdin(['y']);
       const stdout = createMockStdout();
-      const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+      const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => { });
 
       const result = await confirmDestructiveOps([destructiveFinding], stdin, stdout);
 
@@ -82,8 +83,8 @@ describe('Prompt utility', () => {
     it('returns false when user declines with "no"', async () => {
       const stdin = createMockStdin(['no']);
       const stdout = createMockStdout();
-      const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
-      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => { });
+      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => { });
 
       const result = await confirmDestructiveOps([destructiveFinding], stdin, stdout);
 
@@ -95,8 +96,8 @@ describe('Prompt utility', () => {
     it('returns false when user declines with "n"', async () => {
       const stdin = createMockStdin(['n']);
       const stdout = createMockStdout();
-      const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
-      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => { });
+      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => { });
 
       const result = await confirmDestructiveOps([destructiveFinding], stdin, stdout);
 
@@ -108,7 +109,7 @@ describe('Prompt utility', () => {
     it('re-prompts on invalid input then accepts valid input', async () => {
       const stdin = createMockStdin(['invalid', 'maybe', 'yes']);
       const stdout = createMockStdout();
-      const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+      const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => { });
 
       const result = await confirmDestructiveOps([destructiveFinding], stdin, stdout);
 
@@ -120,7 +121,7 @@ describe('Prompt utility', () => {
     it('handles case-insensitive input', async () => {
       const stdin = createMockStdin(['YES']);
       const stdout = createMockStdout();
-      const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+      const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => { });
 
       const result = await confirmDestructiveOps([destructiveFinding], stdin, stdout);
 
@@ -131,7 +132,7 @@ describe('Prompt utility', () => {
     it('handles whitespace in input', async () => {
       const stdin = createMockStdin(['  yes  ']);
       const stdout = createMockStdout();
-      const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+      const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => { });
 
       const result = await confirmDestructiveOps([destructiveFinding], stdin, stdout);
 
@@ -148,7 +149,7 @@ describe('Prompt utility', () => {
     it('prompts for WARNING level findings', async () => {
       const stdin = createMockStdin(['yes']);
       const stdout = createMockStdout();
-      const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+      const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => { });
 
       const result = await confirmDestructiveOps([warningFinding], stdin, stdout);
 
@@ -160,7 +161,7 @@ describe('Prompt utility', () => {
     it('displays both DESTRUCTIVE and WARNING findings', async () => {
       const stdin = createMockStdin(['yes']);
       const stdout = createMockStdout();
-      const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+      const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => { });
 
       const result = await confirmDestructiveOps([destructiveFinding, warningFinding], stdin, stdout);
 
@@ -173,7 +174,7 @@ describe('Prompt utility', () => {
     it('formats findings with type changes', async () => {
       const stdin = createMockStdin(['yes']);
       const stdout = createMockStdout();
-      const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+      const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => { });
 
       const finding: Finding = {
         severity: 'error',
@@ -196,7 +197,7 @@ describe('Prompt utility', () => {
   describe('CI environment detection', () => {
     it('returns false immediately when CI=true', async () => {
       process.env.CI = 'true';
-      const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => { });
 
       const result = await confirmDestructiveOps([destructiveFinding]);
 
@@ -209,7 +210,7 @@ describe('Prompt utility', () => {
 
     it('returns false when CONTINUOUS_INTEGRATION=true', async () => {
       process.env.CONTINUOUS_INTEGRATION = 'true';
-      const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => { });
 
       const result = await confirmDestructiveOps([destructiveFinding]);
 
@@ -225,7 +226,7 @@ describe('Prompt utility', () => {
       process.env.CI = 'false';
       const stdin = createMockStdin(['yes']);
       const stdout = createMockStdout();
-      const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+      const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => { });
 
       const result = await confirmDestructiveOps([destructiveFinding], stdin, stdout);
 
@@ -235,7 +236,7 @@ describe('Prompt utility', () => {
 
     it('suggests using --force flag in CI', async () => {
       process.env.CI = 'true';
-      const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => { });
 
       await confirmDestructiveOps([destructiveFinding]);
 
@@ -243,6 +244,94 @@ describe('Prompt utility', () => {
         expect.stringContaining('Use --force flag to bypass safety checks')
       );
       consoleErrorSpy.mockRestore();
+    });
+
+    it('sets exit code 3 when in CI with destructive findings', async () => {
+      process.env.CI = 'true';
+      const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => { });
+
+      await confirmDestructiveOps([destructiveFinding]);
+
+      expect(process.exitCode).toBe(EXIT_CODES.CI_DESTRUCTIVE);
+      consoleErrorSpy.mockRestore();
+      process.exitCode = 0; // Reset for next test
+    });
+
+    it('sets exit code 3 for WARNING findings in CI', async () => {
+      process.env.CI = 'true';
+      const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => { });
+
+      await confirmDestructiveOps([warningFinding]);
+
+      expect(process.exitCode).toBe(EXIT_CODES.CI_DESTRUCTIVE);
+      consoleErrorSpy.mockRestore();
+      process.exitCode = 0; // Reset for next test
+    });
+
+    it('does not set exit code 3 when no destructive findings in CI', async () => {
+      process.env.CI = 'true';
+
+      const result = await confirmDestructiveOps([]);
+
+      expect(result).toBe(true);
+      expect(process.exitCode).not.toBe(EXIT_CODES.CI_DESTRUCTIVE);
+      process.exitCode = 0; // Reset for next test
+    });
+  });
+
+  describe('hasDestructiveFindings', () => {
+    it('returns true for error level findings', () => {
+      const result = hasDestructiveFindings([destructiveFinding]);
+      expect(result).toBe(true);
+    });
+
+    it('returns true for warning level findings', () => {
+      const result = hasDestructiveFindings([warningFinding]);
+      expect(result).toBe(true);
+    });
+
+    it('returns false for empty findings', () => {
+      const result = hasDestructiveFindings([]);
+      expect(result).toBe(false);
+    });
+
+    it('returns true when array contains mixed severity levels', () => {
+      const infoFinding: Finding = {
+        severity: 'error',
+        code: 'DROP_TABLE',
+        table: 'new_table',
+        message: 'Table dropped'
+      };
+      const result = hasDestructiveFindings([infoFinding, destructiveFinding]);
+      expect(result).toBe(true);
+    });
+  });
+
+  describe('isCI', () => {
+    it('returns true when CI=true', () => {
+      process.env.CI = 'true';
+      const result = isCI();
+      expect(result).toBe(true);
+    });
+
+    it('returns true when CONTINUOUS_INTEGRATION=true', () => {
+      delete process.env.CI;
+      process.env.CONTINUOUS_INTEGRATION = 'true';
+      const result = isCI();
+      expect(result).toBe(true);
+    });
+
+    it('returns false when CI is not set', () => {
+      delete process.env.CI;
+      delete process.env.CONTINUOUS_INTEGRATION;
+      const result = isCI();
+      expect(result).toBe(false);
+    });
+
+    it('returns false when CI=false', () => {
+      process.env.CI = 'false';
+      const result = isCI();
+      expect(result).toBe(false);
     });
   });
 });

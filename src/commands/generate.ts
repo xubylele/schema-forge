@@ -16,7 +16,8 @@ import {
   validateSchemaChanges,
   type SqlConfig
 } from '../domain';
-import { info, success, forceWarning } from '../utils/output';
+import { EXIT_CODES } from '../utils/exitCodes';
+import { forceWarning, info, success } from '../utils/output';
 import { confirmDestructiveOps } from '../utils/prompt';
 
 export interface GenerateOptions {
@@ -117,12 +118,15 @@ export async function runGenerate(options: GenerateOptions): Promise<void> {
   if (!options.safe && !options.force && diff.operations.length > 0) {
     const findings = await validateSchemaChanges(previousState, schema);
     const riskyFindings = findings.filter(f => f.severity === 'error' || f.severity === 'warning');
-    
+
     if (riskyFindings.length > 0) {
       const confirmed = await confirmDestructiveOps(findings);
-      
+
       if (!confirmed) {
-        process.exitCode = 1;
+        // Only set exit code 1 if not already set to 3 (CI destructive)
+        if (process.exitCode !== EXIT_CODES.CI_DESTRUCTIVE) {
+          process.exitCode = EXIT_CODES.ERROR;
+        }
         return;
       }
     }

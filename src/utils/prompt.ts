@@ -4,12 +4,13 @@
 
 import readline from 'node:readline';
 import type { Finding } from '../domain.js';
-import { theme, warning, error } from './output.js';
+import { EXIT_CODES } from './exitCodes.js';
+import { error, theme, warning } from './output.js';
 
 /**
  * Checks if running in a CI environment.
  */
-function isCI(): boolean {
+export function isCI(): boolean {
   return process.env.CI === 'true' || process.env.CONTINUOUS_INTEGRATION === 'true';
 }
 
@@ -86,7 +87,7 @@ async function readConfirmation(input: NodeJS.ReadableStream | undefined = proce
  * @returns Promise<boolean> - true if user confirms, false if user declines or in CI
  * 
  * Behavior:
- * - In CI environment: logs error message and returns false immediately
+ * - In CI environment with destructive findings: sets exit code 3 and returns false immediately
  * - Interactive mode: shows summary and waits for yes/no confirmation
  * - Re-prompts on invalid input
  */
@@ -108,6 +109,7 @@ export async function confirmDestructiveOps(
   // CI environment check - must use explicit --force flag
   if (isCI()) {
     error('Cannot run interactive prompts in CI environment. Use --force flag to bypass safety checks.');
+    process.exitCode = EXIT_CODES.CI_DESTRUCTIVE;
     return false;
   }
 
@@ -124,4 +126,13 @@ export async function confirmDestructiveOps(
   }
 
   return confirmed;
+}
+
+/**
+ * Checks if findings contain destructive or warning-level operations.
+ * @param findings - Array of findings from safety check
+ * @returns true if any error or warning level findings exist
+ */
+export function hasDestructiveFindings(findings: Finding[]): boolean {
+  return findings.some(f => f.severity === 'error' || f.severity === 'warning');
 }

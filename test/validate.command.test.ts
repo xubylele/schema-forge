@@ -3,6 +3,7 @@ import os from 'os';
 import path from 'path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { runValidate } from '../src/commands/validate';
+import { EXIT_CODES } from '../src/utils/exitCodes';
 
 describe('runValidate', () => {
   let tempDir: string;
@@ -196,5 +197,174 @@ describe('runValidate', () => {
       message: 'Column changed to NOT NULL (may fail if data contains NULLs)',
     });
     expect(process.exitCode).toBe(1);
+  });
+
+  describe('CI behavior with exit code 3', () => {
+    let originalCI: string | undefined;
+
+    beforeEach(() => {
+      originalCI = process.env.CI;
+    });
+
+    afterEach(() => {
+      if (originalCI === undefined) {
+        delete process.env.CI;
+      } else {
+        process.env.CI = originalCI;
+      }
+    });
+
+    it('returns exit code 3 when in CI with destructive changes detected', async () => {
+      process.env.CI = 'true';
+      const schemaForgeDir = path.join(tempDir, 'schemaforge');
+
+      await fs.mkdir(schemaForgeDir, { recursive: true });
+      await fs.writeFile(
+        path.join(schemaForgeDir, 'config.json'),
+        JSON.stringify(
+          {
+            schemaFile: 'schemaforge/schema.sf',
+            stateFile: 'schemaforge/state.json',
+            outputDir: 'migrations',
+          },
+          null,
+          2
+        ),
+        'utf-8'
+      );
+      await fs.writeFile(
+        path.join(schemaForgeDir, 'state.json'),
+        JSON.stringify(
+          {
+            version: 1,
+            tables: {
+              users: {
+                columns: {
+                  id: { type: 'uuid', primaryKey: true },
+                  avatar_url: { type: 'text' },
+                },
+              },
+            },
+          },
+          null,
+          2
+        ),
+        'utf-8'
+      );
+      await fs.writeFile(
+        path.join(schemaForgeDir, 'schema.sf'),
+        `table users {\n  id uuid pk\n}\n`,
+        'utf-8'
+      );
+
+      const logSpy = vi.spyOn(console, 'log').mockImplementation(() => { });
+
+      await runValidate();
+
+      logSpy.mockRestore();
+      expect(process.exitCode).toBe(EXIT_CODES.CI_DESTRUCTIVE);
+    });
+
+    it('returns exit code 3 in CI with warning findings', async () => {
+      process.env.CI = 'true';
+      const schemaForgeDir = path.join(tempDir, 'schemaforge');
+
+      await fs.mkdir(schemaForgeDir, { recursive: true });
+      await fs.writeFile(
+        path.join(schemaForgeDir, 'config.json'),
+        JSON.stringify(
+          {
+            schemaFile: 'schemaforge/schema.sf',
+            stateFile: 'schemaforge/state.json',
+            outputDir: 'migrations',
+          },
+          null,
+          2
+        ),
+        'utf-8'
+      );
+      await fs.writeFile(
+        path.join(schemaForgeDir, 'state.json'),
+        JSON.stringify(
+          {
+            version: 1,
+            tables: {
+              users: {
+                columns: {
+                  id: { type: 'uuid', primaryKey: true },
+                  email: { type: 'text', nullable: true },
+                },
+              },
+            },
+          },
+          null,
+          2
+        ),
+        'utf-8'
+      );
+      await fs.writeFile(
+        path.join(schemaForgeDir, 'schema.sf'),
+        `table users {\n  id uuid pk\n  email text not null\n}\n`,
+        'utf-8'
+      );
+
+      const logSpy = vi.spyOn(console, 'log').mockImplementation(() => { });
+
+      await runValidate();
+
+      logSpy.mockRestore();
+      expect(process.exitCode).toBe(EXIT_CODES.CI_DESTRUCTIVE);
+    });
+
+    it('returns exit code 0 in CI when no destructive changes detected', async () => {
+      process.env.CI = 'true';
+      const schemaForgeDir = path.join(tempDir, 'schemaforge');
+
+      await fs.mkdir(schemaForgeDir, { recursive: true });
+      await fs.writeFile(
+        path.join(schemaForgeDir, 'config.json'),
+        JSON.stringify(
+          {
+            schemaFile: 'schemaforge/schema.sf',
+            stateFile: 'schemaforge/state.json',
+            outputDir: 'migrations',
+          },
+          null,
+          2
+        ),
+        'utf-8'
+      );
+      await fs.writeFile(
+        path.join(schemaForgeDir, 'state.json'),
+        JSON.stringify(
+          {
+            version: 1,
+            tables: {
+              users: {
+                columns: {
+                  id: { type: 'uuid', primaryKey: true },
+                  email: { type: 'varchar' },
+                },
+              },
+            },
+          },
+          null,
+          2
+        ),
+        'utf-8'
+      );
+      await fs.writeFile(
+        path.join(schemaForgeDir, 'schema.sf'),
+        `table users {\n  id uuid pk\n  email varchar\n}\n`,
+        'utf-8'
+      );
+
+      const logSpy = vi.spyOn(console, 'log').mockImplementation(() => { });
+
+      await runValidate();
+
+      logSpy.mockRestore();
+      expect(process.exitCode).toBe(EXIT_CODES.SUCCESS);
+    });
   });
 });
