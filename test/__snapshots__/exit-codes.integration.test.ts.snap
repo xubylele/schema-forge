@@ -1,0 +1,5 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`Exit Codes & Safety Matrix - SF-107 > Validate Command > Snapshot Tests: JSON Output > Destructive DROP_TABLE in JSON format > validate-drop-table-json 1`] = `"{"hasErrors":true,"hasWarnings":false,"errors":[{"code":"DROP_TABLE","table":"posts","message":"Table removed"}],"warnings":[]}"`;
+
+exports[`Exit Codes & Safety Matrix - SF-107 > Validate Command > Snapshot Tests: JSON Output > Destructive warning in JSON format > validate-warnings-json 1`] = `"{"hasErrors":false,"hasWarnings":true,"errors":[],"warnings":[{"code":"SET_NOT_NULL","table":"users","column":"email","message":"Column changed to NOT NULL (may fail if data contains NULLs)"}]}"`;
