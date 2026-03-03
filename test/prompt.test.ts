@@ -18,7 +18,7 @@ describe('Prompt utility', () => {
       process.env.CI = originalCI;
     }
     vi.restoreAllMocks();
-  });
+  });Ø
 
   function createMockStdin(inputs: string[]): Readable {
     const stdin = new Readable({
