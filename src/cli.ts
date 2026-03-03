@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 import { Command } from 'commander';
 import pkg from '../package.json';
 import { runDiff } from './commands/diff';
@@ -8,6 +9,7 @@ import { runValidate } from './commands/validate';
 import { isSchemaValidationError } from './domain';
 import { EXIT_CODES } from './utils/exitCodes';
 import { error as printError } from './utils/output';
+import { seedLastSeenVersion, showWhatsNewIfUpdated } from './utils/whatsNew';
 
 const program = new Command();
 
@@ -111,10 +113,18 @@ program
     }
   });
 
-// Parse command line arguments
-program.parse(process.argv);
+async function main(): Promise<void> {
+  const argv = process.argv.slice(2);
+  await seedLastSeenVersion(pkg.version);
+  await showWhatsNewIfUpdated(pkg.version, argv);
 
-// Show help if no command is provided
-if (!process.argv.slice(2).length) {
-  program.outputHelp();
+  // Parse command line arguments
+  program.parse(process.argv);
+
+  // Show help if no command is provided
+  if (!argv.length) {
+    program.outputHelp();
+  }
 }
+
+void main();

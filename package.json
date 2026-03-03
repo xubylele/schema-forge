@@ -1,6 +1,6 @@
 {
   "name": "@xubylele/schema-forge",
-  "version": "1.5.2",
+  "version": "1.6.1",
   "description": "Universal migration generator from schema DSL",
   "main": "dist/cli.js",
   "type": "commonjs",
