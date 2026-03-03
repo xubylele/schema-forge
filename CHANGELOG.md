@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.6.1
+
+### Patch Changes
+
+- 55c3995: # 🚑 hotfix(cli): add shebang to CLI entry point for improved execution in Node.js environments
+
 ## 1.6.0
 
 ### Minor Changes
