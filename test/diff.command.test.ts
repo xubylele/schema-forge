@@ -264,36 +264,6 @@ describe('runDiff --safe flag', () => {
     expect(sql).toContain('ALTER TABLE users ALTER COLUMN age TYPE bigint');
   });
 
-  it('succeeds without --safe when dropping a table', async () => {
-    await setupProject(
-      'table posts {\n  id uuid pk\n}\n',
-      JSON.stringify({
-        version: 1,
-        tables: {
-          users: {
-            columns: {
-              id: { type: 'uuid', primaryKey: true },
-            },
-          },
-          posts: {
-            columns: {
-              id: { type: 'uuid', primaryKey: true },
-            },
-          },
-        },
-      }, null, 2)
-    );
-
-    const logSpy = vi.spyOn(console, 'log').mockImplementation(() => { });
-
-    await runDiff({ safe: false });
-
-    const sql = String(logSpy.mock.calls[0]?.[0] ?? '');
-    logSpy.mockRestore();
-
-    expect(sql).toContain('DROP TABLE users');
-  });
-
   it('succeeds with --force when dropping a table', async () => {
     await setupProject(
       'table posts {\n  id uuid pk\n}\n',

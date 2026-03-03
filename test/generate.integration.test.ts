@@ -126,10 +126,12 @@ describe('runGenerate integration', () => {
     );
 
     const logSpy = vi.spyOn(console, 'log').mockImplementation(() => { });
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => { });
 
-    await runGenerate({ name: 'Alter Email Type' });
+    await runGenerate({ name: 'Alter Email Type', force: true });
 
     logSpy.mockRestore();
+    errorSpy.mockRestore();
 
     const migrationFiles = await fs.readdir(outputDir);
     expect(migrationFiles).toHaveLength(1);
@@ -199,10 +201,12 @@ describe('runGenerate integration', () => {
     );
 
     const logSpy = vi.spyOn(console, 'log').mockImplementation(() => { });
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => { });
 
-    await runGenerate({ name: 'Alter Email Nullability' });
+    await runGenerate({ name: 'Alter Email Nullability', force: true });
 
     logSpy.mockRestore();
+    errorSpy.mockRestore();
 
     const migrationFiles = await fs.readdir(outputDir);
     expect(migrationFiles).toHaveLength(1);
@@ -669,43 +673,6 @@ describe('runGenerate --safe flag', () => {
       'utf-8'
     );
     expect(migrationContents).toContain('ALTER TABLE users ALTER COLUMN age TYPE bigint');
-  });
-
-  it('succeeds without --safe when dropping a table', async () => {
-    await setupProject(
-      'table posts {\n  id uuid pk\n}\n',
-      JSON.stringify({
-        version: 1,
-        tables: {
-          users: {
-            columns: {
-              id: { type: 'uuid', primaryKey: true },
-            },
-          },
-          posts: {
-            columns: {
-              id: { type: 'uuid', primaryKey: true },
-            },
-          },
-        },
-      }, null, 2)
-    );
-
-    const logSpy = vi.spyOn(console, 'log').mockImplementation(() => { });
-
-    await runGenerate({ safe: false, name: 'drop-users' });
-
-    logSpy.mockRestore();
-
-    const migrationDir = path.join(tempDir, 'migrations');
-    const migrationFiles = await fs.readdir(migrationDir);
-    expect(migrationFiles).toHaveLength(1);
-
-    const migrationContents = await fs.readFile(
-      path.join(migrationDir, migrationFiles[0]),
-      'utf-8'
-    );
-    expect(migrationContents).toContain('DROP TABLE users');
   });
 
   it('does not check safe mode when there are no changes', async () => {

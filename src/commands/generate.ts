@@ -17,6 +17,7 @@ import {
   type SqlConfig
 } from '../domain';
 import { info, success, forceWarning } from '../utils/output';
+import { confirmDestructiveOps } from '../utils/prompt';
 
 export interface GenerateOptions {
   name?: string;
@@ -109,6 +110,21 @@ export async function runGenerate(options: GenerateOptions): Promise<void> {
       throw await createSchemaValidationError(
         `Cannot proceed with --safe flag: Found ${destructiveFindings.length} destructive operation(s):\n${errorMessages}\n\nRemove --safe flag or modify schema to avoid destructive changes.`
       );
+    }
+  }
+
+  // Interactive prompt for destructive operations when neither --safe nor --force is used
+  if (!options.safe && !options.force && diff.operations.length > 0) {
+    const findings = await validateSchemaChanges(previousState, schema);
+    const riskyFindings = findings.filter(f => f.severity === 'error' || f.severity === 'warning');
+    
+    if (riskyFindings.length > 0) {
+      const confirmed = await confirmDestructiveOps(findings);
+      
+      if (!confirmed) {
+        process.exitCode = 1;
+        return;
+      }
     }
   }
 

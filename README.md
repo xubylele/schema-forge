@@ -171,12 +171,23 @@ Creates the necessary directory structure and configuration files.
 Generate SQL migration from schema changes.
 
 ```bash
-schema-forge generate [--name "migration description"]
+schema-forge generate [--name "migration description"] [--safe] [--force]
 ```
 
 **Options:**
 
 - `--name` - Optional name for the migration (default: "migration")
+- `--safe` - Block execution if destructive operations are detected (exits with error)
+- `--force` - Bypass safety checks and proceed with destructive operations (shows warning)
+
+**Safety Behavior:**
+
+When destructive or risky operations are detected (like dropping columns or tables), SchemaForge will:
+
+1. **Without flags** - Display an interactive prompt showing the risky operations and ask for confirmation (yes/no)
+2. **With `--safe`** - Block execution immediately and exit with an error listing all destructive operations
+3. **With `--force`** - Bypass safety checks, show a warning message, and proceed with generating the migration
+4. **In CI environment** (`CI=true`) - Skip the interactive prompt and require explicit `--force` flag to proceed
 
 Compares your current schema with the tracked state, generates SQL for any changes, and updates the state file.
 
@@ -185,10 +196,15 @@ Compares your current schema with the tracked state, generates SQL for any chang
 Compare your schema with the current state without generating files.
 
 ```bash
-schema-forge diff
+schema-forge diff [--safe] [--force]
 ```
 
-Shows what SQL would be generated if you ran `generate`. Useful for previewing changes.
+**Options:**
+
+- `--safe` - Block execution if destructive operations are detected (exits with error)
+- `--force` - Bypass safety checks and proceed with displaying destructive SQL (shows warning)
+
+Shows what SQL would be generated if you ran `generate`. Useful for previewing changes. Safety behavior is the same as `generate` command.
 
 ### `schema-forge import`
 
