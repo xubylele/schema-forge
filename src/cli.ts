@@ -32,7 +32,8 @@ function validateFlagExclusivity(options: GlobalOptions): void {
 async function handleError(error: unknown): Promise<void> {
   if ((await isSchemaValidationError(error)) && error instanceof Error) {
     printError(error.message);
-    process.exitCode = EXIT_CODES.SCHEMA_ERROR;
+    // Validation errors (schema DSL, config, etc.) map to exit code 1
+    process.exitCode = EXIT_CODES.VALIDATION_ERROR;
     return;
   }
 
@@ -42,7 +43,8 @@ async function handleError(error: unknown): Promise<void> {
     printError('Unexpected error');
   }
 
-  process.exitCode = EXIT_CODES.ERROR;
+  // All other errors map to validation error exit code
+  process.exitCode = EXIT_CODES.VALIDATION_ERROR;
 }
 
 // Register commands

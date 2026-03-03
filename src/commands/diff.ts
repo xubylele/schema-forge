@@ -110,7 +110,7 @@ export async function runDiff(options: DiffOptions = {}): Promise<void> {
       if (!confirmed) {
         // Only set exit code 1 if not already set to 3 (CI destructive)
         if (process.exitCode !== EXIT_CODES.CI_DESTRUCTIVE) {
-          process.exitCode = EXIT_CODES.ERROR;
+          process.exitCode = EXIT_CODES.VALIDATION_ERROR;
         }
         return;
       }
@@ -119,11 +119,13 @@ export async function runDiff(options: DiffOptions = {}): Promise<void> {
 
   if (diff.operations.length === 0) {
     success('No changes detected');
+    process.exitCode = EXIT_CODES.SUCCESS;
     return;
   }
 
   const sql = await generateSql(diff, provider, config.sql);
   console.log(sql);
+  process.exitCode = EXIT_CODES.SUCCESS;
 }
 
 export function createDiffCommand(): Command {

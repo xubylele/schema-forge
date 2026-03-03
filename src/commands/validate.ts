@@ -68,7 +68,7 @@ export async function runValidate(options: ValidateOptions = {}): Promise<void> 
   if (isCI() && hasDestructiveFindings(findings)) {
     process.exitCode = EXIT_CODES.CI_DESTRUCTIVE;
   } else {
-    process.exitCode = report.hasErrors ? EXIT_CODES.ERROR : EXIT_CODES.SUCCESS;
+    process.exitCode = report.hasErrors ? EXIT_CODES.VALIDATION_ERROR : EXIT_CODES.SUCCESS;
   }
 
   if (options.json) {

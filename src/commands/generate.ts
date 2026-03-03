@@ -125,7 +125,7 @@ export async function runGenerate(options: GenerateOptions): Promise<void> {
       if (!confirmed) {
         // Only set exit code 1 if not already set to 3 (CI destructive)
         if (process.exitCode !== EXIT_CODES.CI_DESTRUCTIVE) {
-          process.exitCode = EXIT_CODES.ERROR;
+          process.exitCode = EXIT_CODES.VALIDATION_ERROR;
         }
         return;
       }
@@ -134,6 +134,7 @@ export async function runGenerate(options: GenerateOptions): Promise<void> {
 
   if (diff.operations.length === 0) {
     info('No changes detected');
+    process.exitCode = EXIT_CODES.SUCCESS;
     return;
   }
 
@@ -150,6 +151,7 @@ export async function runGenerate(options: GenerateOptions): Promise<void> {
   await saveState(statePath, nextState);
 
   success(`SQL generated successfully: ${migrationPath}`);
+  process.exitCode = EXIT_CODES.SUCCESS;
 }
 
 export function createGenerateCommand(): Command {

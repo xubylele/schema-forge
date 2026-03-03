@@ -1,16 +1,18 @@
 /**
  * Exit codes used throughout the CLI for deterministic behavior
+ *
+ * @see SF-106 Standardize Exit Codes
  */
 
 export const EXIT_CODES = {
   /** Successful operation */
   SUCCESS: 0,
 
-  /** General error (operation failed, user declined, missing files, etc.) */
-  ERROR: 1,
+  /** Validation error (invalid DSL syntax, config errors, missing files, etc.) */
+  VALIDATION_ERROR: 1,
 
-  /** Schema validation error (invalid DSL syntax or structure) */
-  SCHEMA_ERROR: 2,
+  /** Drift detected - Reserved for future use when comparing actual DB state vs schema */
+  DRIFT_DETECTED: 2,
 
   /** Destructive operation detected in CI environment without --force */
   CI_DESTRUCTIVE: 3,
