@@ -10,7 +10,9 @@ import {
   validateSchema,
   validateSchemaChanges
 } from '../domain';
+import { EXIT_CODES } from '../utils/exitCodes';
 import { success } from '../utils/output';
+import { hasDestructiveFindings, isCI } from '../utils/prompt';
 
 export interface ValidateOptions {
   json?: boolean;
@@ -62,15 +64,20 @@ export async function runValidate(options: ValidateOptions = {}): Promise<void> 
   const findings = await validateSchemaChanges(previousState, schema);
   const report = await toValidationReport(findings);
 
+  // Determine exit code: 3 in CI with destructive findings, 1 if errors, 0 otherwise
+  if (isCI() && hasDestructiveFindings(findings)) {
+    process.exitCode = EXIT_CODES.CI_DESTRUCTIVE;
+  } else {
+    process.exitCode = report.hasErrors ? EXIT_CODES.VALIDATION_ERROR : EXIT_CODES.SUCCESS;
+  }
+
   if (options.json) {
     console.log(JSON.stringify(report, null, 2));
-    process.exitCode = report.hasErrors ? 1 : 0;
     return;
   }
 
   if (findings.length === 0) {
     success('No destructive changes detected');
-    process.exitCode = 0;
     return;
   }
 
@@ -90,8 +97,6 @@ export async function runValidate(options: ValidateOptions = {}): Promise<void> 
       );
     }
   }
-
-  process.exitCode = report.hasErrors ? 1 : 0;
 }
 
 export function createValidateCommand(): Command {

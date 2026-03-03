@@ -12,7 +12,8 @@ import {
   getSchemaForgeDir,
   getStatePath
 } from '../core/paths';
-import { error, info, success } from '../utils/output';
+import { EXIT_CODES } from '../utils/exitCodes';
+import { info, success } from '../utils/output';
 
 export async function runInit(): Promise<void> {
   const root = getProjectRoot();
@@ -20,9 +21,7 @@ export async function runInit(): Promise<void> {
 
   // Check if schemaforge directory or any file exists
   if (await fileExists(schemaForgeDir)) {
-    error('schemaforge/ directory already exists');
-    error('Please remove it or run init in a different directory');
-    process.exit(1);
+    throw new Error('schemaforge/ directory already exists. Please remove it or run init in a different directory.');
   }
 
   const schemaFilePath = getSchemaFilePath(root);
@@ -31,16 +30,13 @@ export async function runInit(): Promise<void> {
 
   // Check individual files just to be safe
   if (await fileExists(schemaFilePath)) {
-    error(`${schemaFilePath} already exists`);
-    process.exit(1);
+    throw new Error(`${schemaFilePath} already exists`);
   }
   if (await fileExists(configPath)) {
-    error(`${configPath} already exists`);
-    process.exit(1);
+    throw new Error(`${configPath} already exists`);
   }
   if (await fileExists(statePath)) {
-    error(`${statePath} already exists`);
-    process.exit(1);
+    throw new Error(`${statePath} already exists`);
   }
 
   info('Initializing schema project...');
@@ -91,6 +87,7 @@ table users {
   info('Next steps:');
   info('  1. Edit schemaforge/schema.sf to define your schema');
   info('  2. Run: schema-forge generate');
+  process.exitCode = EXIT_CODES.SUCCESS;
 }
 
 export function createInitCommand(): Command {

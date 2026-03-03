@@ -10,9 +10,17 @@ import {
   loadState,
   parseSchema,
   validateSchema,
+  validateSchemaChanges,
   type SqlConfig
 } from '../domain';
-import { success } from '../utils/output';
+import { EXIT_CODES } from '../utils/exitCodes';
+import { forceWarning, success } from '../utils/output';
+import { confirmDestructiveOps } from '../utils/prompt';
+
+export interface DiffOptions {
+  safe?: boolean;
+  force?: boolean;
+}
 
 interface DiffConfig {
   schemaFile: string;
@@ -27,7 +35,12 @@ function resolveConfigPath(root: string, targetPath: string): string {
   return path.isAbsolute(targetPath) ? targetPath : path.join(root, targetPath);
 }
 
-export async function runDiff(): Promise<void> {
+export async function runDiff(options: DiffOptions = {}): Promise<void> {
+  // Validate flag exclusivity
+  if (options.safe && options.force) {
+    throw new Error('Cannot use --safe and --force flags together. Choose one:\n  --safe: Block destructive operations\n  --force: Bypass safety checks');
+  }
+
   const root = getProjectRoot();
   const configPath = getConfigPath(root);
 
@@ -63,20 +76,63 @@ export async function runDiff(): Promise<void> {
   const previousState = await loadState(statePath);
   const diff = await diffSchemas(previousState, schema);
 
+  // Handle --force flag: warn and bypass safety checks
+  if (options.force) {
+    forceWarning('Are you sure to use --force? This option will bypass safety checks for destructive operations.');
+  }
+
+  // Check for destructive operations in safe mode
+  if (options.safe && !options.force && diff.operations.length > 0) {
+    const findings = await validateSchemaChanges(previousState, schema);
+    const destructiveFindings = findings.filter(f => f.severity === 'error');
+
+    if (destructiveFindings.length > 0) {
+      const errorMessages = destructiveFindings.map(f => {
+        const target = f.column ? `${f.table}.${f.column}` : f.table;
+        const typeRange = f.from && f.to ? ` (${f.from} -> ${f.to})` : '';
+        return `  - ${f.code}: ${target}${typeRange}`;
+      }).join('\n');
+
+      throw await createSchemaValidationError(
+        `Cannot proceed with --safe flag: Found ${destructiveFindings.length} destructive operation(s):\n${errorMessages}\n\nRemove --safe flag or modify schema to avoid destructive changes.`
+      );
+    }
+  }
+
+  // Interactive prompt for destructive operations when neither --safe nor --force is used
+  if (!options.safe && !options.force && diff.operations.length > 0) {
+    const findings = await validateSchemaChanges(previousState, schema);
+    const riskyFindings = findings.filter(f => f.severity === 'error' || f.severity === 'warning');
+
+    if (riskyFindings.length > 0) {
+      const confirmed = await confirmDestructiveOps(findings);
+
+      if (!confirmed) {
+        // Only set exit code 1 if not already set to 3 (CI destructive)
+        if (process.exitCode !== EXIT_CODES.CI_DESTRUCTIVE) {
+          process.exitCode = EXIT_CODES.VALIDATION_ERROR;
+        }
+        return;
+      }
+    }
+  }
+
   if (diff.operations.length === 0) {
     success('No changes detected');
+    process.exitCode = EXIT_CODES.SUCCESS;
     return;
   }
 
   const sql = await generateSql(diff, provider, config.sql);
   console.log(sql);
+  process.exitCode = EXIT_CODES.SUCCESS;
 }
 
 export function createDiffCommand(): Command {
   const command = new Command('diff');
 
-  command.description('Compare two schema versions and generate migration SQL').action(async () => {
-    await runDiff();
+  command.description('Compare two schema versions and generate migration SQL').action(async (options: DiffOptions) => {
+    await runDiff(options);
   });
 
   return command;
