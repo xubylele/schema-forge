@@ -171,12 +171,25 @@ Creates the necessary directory structure and configuration files.
 Generate SQL migration from schema changes.
 
 ```bash
-schema-forge generate [--name "migration description"]
+schema-forge generate [--name "migration description"] [--safe] [--force]
 ```
 
 **Options:**
 
 - `--name` - Optional name for the migration (default: "migration")
+- `--safe` - Block execution if destructive operations are detected (exits with error)
+- `--force` - Bypass safety checks and proceed with destructive operations (shows warning)
+
+**Safety Behavior:**
+
+When destructive or risky operations are detected (like dropping columns or tables), SchemaForge will:
+
+1. **Without flags** - Display an interactive prompt showing the risky operations and ask for confirmation (yes/no)
+2. **With `--safe`** - Block execution immediately and exit with error code 1, listing all destructive operations
+3. **With `--force`** - Bypass safety checks, show a warning message, and proceed with generating the migration
+4. **In CI environment** (`CI=true`) - Skip the interactive prompt, fail with exit code 3 for destructive operations unless `--force` is used
+
+See [CI Behavior](#ci-behavior) for more details.
 
 Compares your current schema with the tracked state, generates SQL for any changes, and updates the state file.
 
@@ -185,10 +198,15 @@ Compares your current schema with the tracked state, generates SQL for any chang
 Compare your schema with the current state without generating files.
 
 ```bash
-schema-forge diff
+schema-forge diff [--safe] [--force]
 ```
 
-Shows what SQL would be generated if you ran `generate`. Useful for previewing changes.
+**Options:**
+
+- `--safe` - Block execution if destructive operations are detected (exits with error)
+- `--force` - Bypass safety checks and proceed with displaying destructive SQL (shows warning)
+
+Shows what SQL would be generated if you ran `generate`. Useful for previewing changes. Safety behavior is the same as `generate` command. In CI environments, exits with code 3 if destructive operations are detected unless `--force` is used. See [CI Behavior](#ci-behavior) for more details.
 
 ### `schema-forge import`
 
@@ -229,10 +247,81 @@ Use JSON mode for CI and automation:
 schema-forge validate --json
 ```
 
+Exit codes (also see [CI Behavior](#ci-behavior)):
+
+- `3` in CI environment if destructive findings detected
+- `1` if one or more `error` findings are detected
+- `0` if no `error` findings are detected (warnings alone do not fail)
+
 Exit codes:
 
 - `1` when one or more `error` findings are detected
 - `0` when no `error` findings are detected (warnings alone do not fail)
+
+## CI Behavior
+
+SchemaForge ensures deterministic behavior in Continuous Integration (CI) environments to prevent accidental destructive operations.
+
+### Detecting CI Environment
+
+CI mode is automatically activated when either environment variable is set:
+
+- `CI=true`
+- `CONTINUOUS_INTEGRATION=true`
+
+### Exit Codes
+
+SchemaForge uses specific exit codes for different scenarios:
+
+| Exit Code | Meaning |
+| --------- | ------- |
+| `0` | Success - no changes or no destructive operations detected |
+| `1` | General error - validation failed, operation declined, missing files, etc. |
+| `2` | Schema validation error - invalid DSL syntax or structure |
+| `3` | **CI Destructive** - destructive operations detected in CI environment without `--force` |
+
+### Destructive Operations in CI
+
+When running in a CI environment, destructive operations (those flagged as `error` or `warning` level findings) trigger exit code 3:
+
+**Operations classified as destructive:**
+
+- Dropping tables (`DROP_TABLE`)
+- Dropping columns (`DROP_COLUMN`)
+- Changing column types in incompatible ways
+- Making columns NOT NULL when they allow NULL
+
+### Overriding in CI
+
+To proceed with destructive operations in CI, use the `--force` flag:
+
+```bash
+# This will fail with exit code 3 if destructive changes detected
+schema-forge generate
+
+# This will proceed despite destructive changes (requires explicit acknowledgment)
+schema-forge generate --force
+```
+
+### No Interactive Prompts in CI
+
+When `CI=true`, SchemaForge will:
+
+- ✅ Never show interactive prompts, preventing script hangs
+- ✅ Fail deterministically (exit code 3) for destructive operations
+- ✅ Allow explicit override with `--force` flag
+- ❌ Not accept user input for confirmation
+
+### Using `--safe` in CI
+
+The `--safe` flag is compatible with CI and blocks execution of destructive operations:
+
+```bash
+# Blocks execution if destructive operations detected, exits with code 1
+schema-forge generate --safe
+```
+
+This is useful for strict CI pipelines where all destructive changes must be reviewed and merged separately.
 
 ## Constraint Change Detection
 

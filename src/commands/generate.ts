@@ -13,12 +13,17 @@ import {
   saveState,
   schemaToState,
   validateSchema,
+  validateSchemaChanges,
   type SqlConfig
 } from '../domain';
-import { info, success } from '../utils/output';
+import { EXIT_CODES } from '../utils/exitCodes';
+import { forceWarning, info, success } from '../utils/output';
+import { confirmDestructiveOps } from '../utils/prompt';
 
 export interface GenerateOptions {
   name?: string;
+  safe?: boolean;
+  force?: boolean;
 }
 
 interface GenerateConfig {
@@ -40,6 +45,11 @@ function resolveConfigPath(root: string, targetPath: string): string {
 }
 
 export async function runGenerate(options: GenerateOptions): Promise<void> {
+  // Validate flag exclusivity
+  if (options.safe && options.force) {
+    throw new Error('Cannot use --safe and --force flags together. Choose one:\n  --safe: Block destructive operations\n  --force: Bypass safety checks');
+  }
+
   const root = getProjectRoot();
   const configPath = getConfigPath(root);
 
@@ -81,8 +91,50 @@ export async function runGenerate(options: GenerateOptions): Promise<void> {
   const previousState = await loadState(statePath);
   const diff = await diffSchemas(previousState, schema);
 
+  // Handle --force flag: warn and bypass safety checks
+  if (options.force) {
+    forceWarning('Are you sure to use --force? This option will bypass safety checks for destructive operations.');
+  }
+
+  // Check for destructive operations in safe mode
+  if (options.safe && !options.force && diff.operations.length > 0) {
+    const findings = await validateSchemaChanges(previousState, schema);
+    const destructiveFindings = findings.filter(f => f.severity === 'error');
+
+    if (destructiveFindings.length > 0) {
+      const errorMessages = destructiveFindings.map(f => {
+        const target = f.column ? `${f.table}.${f.column}` : f.table;
+        const typeRange = f.from && f.to ? ` (${f.from} -> ${f.to})` : '';
+        return `  - ${f.code}: ${target}${typeRange}`;
+      }).join('\n');
+
+      throw await createSchemaValidationError(
+        `Cannot proceed with --safe flag: Found ${destructiveFindings.length} destructive operation(s):\n${errorMessages}\n\nRemove --safe flag or modify schema to avoid destructive changes.`
+      );
+    }
+  }
+
+  // Interactive prompt for destructive operations when neither --safe nor --force is used
+  if (!options.safe && !options.force && diff.operations.length > 0) {
+    const findings = await validateSchemaChanges(previousState, schema);
+    const riskyFindings = findings.filter(f => f.severity === 'error' || f.severity === 'warning');
+
+    if (riskyFindings.length > 0) {
+      const confirmed = await confirmDestructiveOps(findings);
+
+      if (!confirmed) {
+        // Only set exit code 1 if not already set to 3 (CI destructive)
+        if (process.exitCode !== EXIT_CODES.CI_DESTRUCTIVE) {
+          process.exitCode = EXIT_CODES.VALIDATION_ERROR;
+        }
+        return;
+      }
+    }
+  }
+
   if (diff.operations.length === 0) {
     info('No changes detected');
+    process.exitCode = EXIT_CODES.SUCCESS;
     return;
   }
 
@@ -99,6 +151,7 @@ export async function runGenerate(options: GenerateOptions): Promise<void> {
   await saveState(statePath, nextState);
 
   success(`SQL generated successfully: ${migrationPath}`);
+  process.exitCode = EXIT_CODES.SUCCESS;
 }
 
 export function createGenerateCommand(): Command {

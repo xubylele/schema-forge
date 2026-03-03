@@ -3,6 +3,7 @@ import path from 'path';
 import { fileExists, readJsonFile, writeTextFile } from '../core/fs';
 import { getConfigPath, getProjectRoot, getSchemaFilePath } from '../core/paths';
 import { applySqlOps, loadMigrationSqlInput, parseMigrationSql, schemaToDsl } from '../domain';
+import { EXIT_CODES } from '../utils/exitCodes';
 import { info, success, warning } from '../utils/output';
 
 interface ImportConfig {
@@ -71,6 +72,8 @@ export async function runImport(inputPath: string, options: ImportOptions = {}):
       warning(`...and ${warnings.length - 10} more`);
     }
   }
+
+  process.exitCode = EXIT_CODES.SUCCESS;
 }
 
 export function createImportCommand(): Command {

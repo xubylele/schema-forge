@@ -46,3 +46,7 @@ export function warning(message: string): void {
 export function error(message: string): void {
   console.error(theme.error(`[ERROR] ${message}`));
 }
+
+export function forceWarning(message: string): void {
+  console.error(theme.warning(`[FORCE] ${message}`));
+}
