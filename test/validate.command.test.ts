@@ -8,9 +8,15 @@ import { EXIT_CODES } from '../src/utils/exitCodes';
 describe('runValidate', () => {
   let tempDir: string;
   let originalCwd: string;
+  let originalCI: string | undefined;
+  let originalContinuousIntegration: string | undefined;
 
   beforeEach(async () => {
     originalCwd = process.cwd();
+    originalCI = process.env.CI;
+    originalContinuousIntegration = process.env.CONTINUOUS_INTEGRATION;
+    delete process.env.CI;
+    delete process.env.CONTINUOUS_INTEGRATION;
     tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'schemaforge-validate-'));
     process.chdir(tempDir);
     process.exitCode = undefined;
@@ -18,6 +24,16 @@ describe('runValidate', () => {
 
   afterEach(async () => {
     process.chdir(originalCwd);
+    if (originalCI === undefined) {
+      delete process.env.CI;
+    } else {
+      process.env.CI = originalCI;
+    }
+    if (originalContinuousIntegration === undefined) {
+      delete process.env.CONTINUOUS_INTEGRATION;
+    } else {
+      process.env.CONTINUOUS_INTEGRATION = originalContinuousIntegration;
+    }
     process.exitCode = undefined;
     await fs.rm(tempDir, { recursive: true, force: true });
   });
@@ -200,20 +216,6 @@ describe('runValidate', () => {
   });
 
   describe('CI behavior with exit code 3', () => {
-    let originalCI: string | undefined;
-
-    beforeEach(() => {
-      originalCI = process.env.CI;
-    });
-
-    afterEach(() => {
-      if (originalCI === undefined) {
-        delete process.env.CI;
-      } else {
-        process.env.CI = originalCI;
-      }
-    });
-
     it('returns exit code 3 when in CI with destructive changes detected', async () => {
       process.env.CI = 'true';
       const schemaForgeDir = path.join(tempDir, 'schemaforge');

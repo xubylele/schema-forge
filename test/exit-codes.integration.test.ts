@@ -38,10 +38,14 @@ describe('Exit Codes & Safety Matrix - SF-107', () => {
   let tempDir: string;
   let originalCwd: string;
   let originalCI: string | undefined;
+  let originalContinuousIntegration: string | undefined;
 
   beforeEach(async () => {
     originalCwd = process.cwd();
     originalCI = process.env.CI;
+    originalContinuousIntegration = process.env.CONTINUOUS_INTEGRATION;
+    delete process.env.CI;
+    delete process.env.CONTINUOUS_INTEGRATION;
     tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'schemaforge-safety-matrix-'));
     process.chdir(tempDir);
     process.exitCode = undefined;
@@ -54,6 +58,11 @@ describe('Exit Codes & Safety Matrix - SF-107', () => {
       delete process.env.CI;
     } else {
       process.env.CI = originalCI;
+    }
+    if (originalContinuousIntegration === undefined) {
+      delete process.env.CONTINUOUS_INTEGRATION;
+    } else {
+      process.env.CONTINUOUS_INTEGRATION = originalContinuousIntegration;
     }
     await fs.rm(tempDir, { recursive: true, force: true });
   });

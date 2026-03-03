@@ -6,9 +6,13 @@ import { confirmDestructiveOps, hasDestructiveFindings, isCI } from '../src/util
 
 describe('Prompt utility', () => {
   let originalCI: string | undefined;
+  let originalContinuousIntegration: string | undefined;
 
   beforeEach(() => {
     originalCI = process.env.CI;
+    originalContinuousIntegration = process.env.CONTINUOUS_INTEGRATION;
+    delete process.env.CI;
+    delete process.env.CONTINUOUS_INTEGRATION;
   });
 
   afterEach(() => {
@@ -17,8 +21,13 @@ describe('Prompt utility', () => {
     } else {
       process.env.CI = originalCI;
     }
+    if (originalContinuousIntegration === undefined) {
+      delete process.env.CONTINUOUS_INTEGRATION;
+    } else {
+      process.env.CONTINUOUS_INTEGRATION = originalContinuousIntegration;
+    }
     vi.restoreAllMocks();
-  });Ø
+  });
 
   function createMockStdin(inputs: string[]): Readable {
     const stdin = new Readable({
