@@ -7,12 +7,15 @@ import {
   createSchemaValidationError,
   diffSchemas,
   generateSql,
+  introspectPostgresSchema,
   loadState,
   parseSchema,
+  schemaToState,
   validateSchema,
   validateSchemaChanges,
   type SqlConfig
 } from '../domain';
+import { parseSchemaList, resolvePostgresConnectionString, withPostgresQueryExecutor } from '../core/postgres';
 import { EXIT_CODES } from '../utils/exitCodes';
 import { forceWarning, success } from '../utils/output';
 import { confirmDestructiveOps } from '../utils/prompt';
@@ -20,16 +23,16 @@ import { confirmDestructiveOps } from '../utils/prompt';
 export interface DiffOptions {
   safe?: boolean;
   force?: boolean;
+  url?: string;
+  schema?: string;
 }
 
 interface DiffConfig {
   schemaFile: string;
-  stateFile: string;
+  stateFile?: string;
   provider?: string;
   sql?: SqlConfig;
 }
-
-const REQUIRED_CONFIG_FIELDS: Array<keyof DiffConfig> = ['schemaFile', 'stateFile'];
 
 function resolveConfigPath(root: string, targetPath: string): string {
   return path.isAbsolute(targetPath) ? targetPath : path.join(root, targetPath);
@@ -49,8 +52,10 @@ export async function runDiff(options: DiffOptions = {}): Promise<void> {
   }
 
   const config = await readJsonFile<DiffConfig>(configPath, {} as DiffConfig);
+  const useLiveDatabase = Boolean(options.url || process.env.DATABASE_URL);
 
-  for (const field of REQUIRED_CONFIG_FIELDS) {
+  const requiredFields: Array<keyof DiffConfig> = useLiveDatabase ? ['schemaFile'] : ['schemaFile', 'stateFile'];
+  for (const field of requiredFields) {
     const value = config[field];
     if (!value || typeof value !== 'string') {
       throw new Error(`Invalid config: '${field}' is required`);
@@ -58,7 +63,7 @@ export async function runDiff(options: DiffOptions = {}): Promise<void> {
   }
 
   const schemaPath = resolveConfigPath(root, config.schemaFile);
-  const statePath = resolveConfigPath(root, config.stateFile);
+  const statePath = config.stateFile ? resolveConfigPath(root, config.stateFile) : null;
 
   const { provider } = resolveProvider(config.provider);
 
@@ -73,7 +78,19 @@ export async function runDiff(options: DiffOptions = {}): Promise<void> {
     throw error;
   }
 
-  const previousState = await loadState(statePath);
+  const previousState = useLiveDatabase
+    ? await withPostgresQueryExecutor(
+      resolvePostgresConnectionString({ url: options.url }),
+      async query => {
+        const schemaFilters = parseSchemaList(options.schema);
+        const liveSchema = await introspectPostgresSchema({
+          query,
+          ...(schemaFilters ? { schemas: schemaFilters } : {}),
+        });
+        return schemaToState(liveSchema);
+      }
+    )
+    : await loadState(statePath ?? '');
   const diff = await diffSchemas(previousState, schema);
 
   // Handle --force flag: warn and bypass safety checks
@@ -131,9 +148,13 @@ export async function runDiff(options: DiffOptions = {}): Promise<void> {
 export function createDiffCommand(): Command {
   const command = new Command('diff');
 
-  command.description('Compare two schema versions and generate migration SQL').action(async (options: DiffOptions) => {
-    await runDiff(options);
-  });
+  command
+    .description('Compare two schema versions and generate migration SQL')
+    .option('--url <string>', 'PostgreSQL connection URL for live diff (defaults to DATABASE_URL)')
+    .option('--schema <list>', 'Comma-separated schema names to introspect (default: public)')
+    .action(async (options: DiffOptions) => {
+      await runDiff(options);
+    });
 
   return command;
 }

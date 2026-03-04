@@ -3,27 +3,30 @@ import path from 'path';
 import { fileExists, readJsonFile, readTextFile } from '../core/fs';
 import { getConfigPath, getProjectRoot } from '../core/paths';
 import {
+  analyzeSchemaDrift,
   createSchemaValidationError,
+  introspectPostgresSchema,
   loadState,
   parseSchema,
   toValidationReport,
   validateSchema,
   validateSchemaChanges
 } from '../domain';
+import { parseSchemaList, resolvePostgresConnectionString, withPostgresQueryExecutor } from '../core/postgres';
 import { EXIT_CODES } from '../utils/exitCodes';
 import { success } from '../utils/output';
 import { hasDestructiveFindings, isCI } from '../utils/prompt';
 
 export interface ValidateOptions {
   json?: boolean;
+  url?: string;
+  schema?: string;
 }
 
 interface ValidateConfig {
   schemaFile: string;
-  stateFile: string;
+  stateFile?: string;
 }
-
-const REQUIRED_CONFIG_FIELDS: Array<keyof ValidateConfig> = ['schemaFile', 'stateFile'];
 
 function resolveConfigPath(root: string, targetPath: string): string {
   return path.isAbsolute(targetPath) ? targetPath : path.join(root, targetPath);
@@ -32,6 +35,7 @@ function resolveConfigPath(root: string, targetPath: string): string {
 export async function runValidate(options: ValidateOptions = {}): Promise<void> {
   const root = getProjectRoot();
   const configPath = getConfigPath(root);
+  const useLiveDatabase = Boolean(options.url || process.env.DATABASE_URL);
 
   if (!(await fileExists(configPath))) {
     throw new Error('SchemaForge project not initialized. Run "schema-forge init" first.');
@@ -39,7 +43,8 @@ export async function runValidate(options: ValidateOptions = {}): Promise<void> 
 
   const config = await readJsonFile<ValidateConfig>(configPath, {} as ValidateConfig);
 
-  for (const field of REQUIRED_CONFIG_FIELDS) {
+  const requiredFields: Array<keyof ValidateConfig> = ['schemaFile', 'stateFile'];
+  for (const field of requiredFields) {
     const value = config[field];
     if (!value || typeof value !== 'string') {
       throw new Error(`Invalid config: '${field}' is required`);
@@ -47,6 +52,9 @@ export async function runValidate(options: ValidateOptions = {}): Promise<void> 
   }
 
   const schemaPath = resolveConfigPath(root, config.schemaFile);
+  if (!config.stateFile) {
+    throw new Error("Invalid config: 'stateFile' is required");
+  }
   const statePath = resolveConfigPath(root, config.stateFile);
 
   const schemaSource = await readTextFile(schemaPath);
@@ -61,6 +69,54 @@ export async function runValidate(options: ValidateOptions = {}): Promise<void> 
   }
 
   const previousState = await loadState(statePath);
+
+  if (useLiveDatabase) {
+    const schemaFilters = parseSchemaList(options.schema);
+    const liveSchema = await withPostgresQueryExecutor(
+      resolvePostgresConnectionString({ url: options.url }),
+      query => introspectPostgresSchema({
+        query,
+        ...(schemaFilters ? { schemas: schemaFilters } : {}),
+      })
+    );
+    const driftReport = await analyzeSchemaDrift(previousState, liveSchema);
+    const hasDrift = driftReport.missingTables.length > 0
+      || driftReport.extraTables.length > 0
+      || driftReport.columnDifferences.length > 0
+      || driftReport.typeMismatches.length > 0;
+
+    process.exitCode = hasDrift ? EXIT_CODES.DRIFT_DETECTED : EXIT_CODES.SUCCESS;
+
+    if (options.json) {
+      console.log(JSON.stringify(driftReport, null, 2));
+      return;
+    }
+
+    if (!hasDrift) {
+      success('No schema drift detected');
+      return;
+    }
+
+    if (driftReport.missingTables.length > 0) {
+      console.log(`Missing tables in live DB: ${driftReport.missingTables.join(', ')}`);
+    }
+    if (driftReport.extraTables.length > 0) {
+      console.log(`Extra tables in live DB: ${driftReport.extraTables.join(', ')}`);
+    }
+    for (const difference of driftReport.columnDifferences) {
+      if (difference.missingInLive.length > 0) {
+        console.log(`Missing columns in ${difference.tableName}: ${difference.missingInLive.join(', ')}`);
+      }
+      if (difference.extraInLive.length > 0) {
+        console.log(`Extra columns in ${difference.tableName}: ${difference.extraInLive.join(', ')}`);
+      }
+    }
+    for (const mismatch of driftReport.typeMismatches) {
+      console.log(`Type mismatch ${mismatch.tableName}.${mismatch.columnName}: ${mismatch.expectedType} -> ${mismatch.actualType}`);
+    }
+    return;
+  }
+
   const findings = await validateSchemaChanges(previousState, schema);
   const report = await toValidationReport(findings);
 
@@ -105,6 +161,8 @@ export function createValidateCommand(): Command {
   command
     .description('Detect destructive or risky schema changes against state')
     .option('--json', 'Output structured JSON')
+    .option('--url <string>', 'PostgreSQL connection URL for live drift validation (defaults to DATABASE_URL)')
+    .option('--schema <list>', 'Comma-separated schema names to introspect (default: public)')
     .action(async (options: ValidateOptions) => {
       await runValidate(options);
     });
