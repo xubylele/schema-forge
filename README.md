@@ -13,6 +13,7 @@ A modern CLI tool for database schema management with a clean DSL and automatic 
 - **Default Change Detection** - Detects added/removed/modified column defaults and generates ALTER COLUMN SET/DROP DEFAULT
 - **Postgres/Supabase** - Currently supports PostgreSQL and Supabase
 - **Constraint Diffing** - Detects UNIQUE and PRIMARY KEY changes with deterministic constraint names
+- **Live PostgreSQL Introspection** - Extract normalized schema directly from `information_schema`
 
 ## Installation
 
@@ -205,8 +206,12 @@ schema-forge diff [--safe] [--force]
 
 - `--safe` - Block execution if destructive operations are detected (exits with error)
 - `--force` - Bypass safety checks and proceed with displaying destructive SQL (shows warning)
+- `--url` - PostgreSQL connection URL for live database diff (fallback: `DATABASE_URL`)
+- `--schema` - Comma-separated schema names to introspect (default: `public`)
 
 Shows what SQL would be generated if you ran `generate`. Useful for previewing changes. Safety behavior is the same as `generate` command. In CI environments, exits with code 3 if destructive operations are detected unless `--force` is used. See [CI Behavior](#ci-behavior) for more details.
+
+When `--url` (or `DATABASE_URL`) is provided, `diff` compares your target DSL schema against the live PostgreSQL schema introspected from `information_schema`.
 
 ### `schema-forge import`
 
@@ -234,6 +239,12 @@ Detect destructive or risky schema changes before generating/applying migrations
 schema-forge validate
 ```
 
+Live drift validation:
+
+```bash
+schema-forge validate --url "$DATABASE_URL" --json
+```
+
 Validation checks include:
 
 - Dropped tables (`DROP_TABLE`, error)
@@ -247,6 +258,13 @@ Use JSON mode for CI and automation:
 schema-forge validate --json
 ```
 
+Live mode options:
+
+- `--url` - PostgreSQL connection URL for live drift validation (fallback: `DATABASE_URL`)
+- `--schema` - Comma-separated schema names to introspect (default: `public`)
+
+In live mode, exit code `2` is used when drift is detected between `state.json` and the live database.
+
 Exit codes (also see [CI Behavior](#ci-behavior)):
 
 - `3` in CI environment if destructive findings detected
@@ -257,6 +275,21 @@ Exit codes:
 
 - `1` when one or more `error` findings are detected
 - `0` when no `error` findings are detected (warnings alone do not fail)
+
+### `schema-forge introspect`
+
+Extract normalized schema directly from a live PostgreSQL database.
+
+```bash
+schema-forge introspect --url "$DATABASE_URL" --json
+```
+
+**Options:**
+
+- `--url` - PostgreSQL connection URL (fallback: `DATABASE_URL`)
+- `--schema` - Comma-separated schema names to introspect (default: `public`)
+- `--json` - Output normalized schema as JSON
+- `--out <path>` - Write normalized schema JSON to a file
 
 ## CI Behavior
 

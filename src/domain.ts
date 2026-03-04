@@ -1,8 +1,11 @@
 import type {
   ApplySqlOpsResult,
+  DriftReport,
   Finding,
   MigrationSqlInput,
   ParseResult,
+  PostgresIntrospectionOptions,
+  PostgresQueryExecutor,
   Provider,
   SqlOp,
   SqlConfig,
@@ -77,6 +80,16 @@ export async function parseMigrationSql(sql: string): Promise<ParseResult> {
   return core.parseMigrationSql(sql);
 }
 
+export async function introspectPostgresSchema(options: PostgresIntrospectionOptions): Promise<DatabaseSchema> {
+  const core = await loadCore();
+  return core.introspectPostgresSchema(options);
+}
+
+export async function analyzeSchemaDrift(state: StateFile, liveSchema: DatabaseSchema): Promise<DriftReport> {
+  const core = await loadCore();
+  return core.analyzeSchemaDrift(state, liveSchema);
+}
+
 export async function applySqlOps(ops: ParseResult['ops']): Promise<ApplySqlOpsResult> {
   const core = await loadCore();
   return core.applySqlOps(ops);
@@ -104,9 +117,12 @@ export async function isSchemaValidationError(error: unknown): Promise<boolean> 
 
 export type {
   ApplySqlOpsResult,
+  DriftReport,
   Finding,
   MigrationSqlInput,
   ParseResult,
+  PostgresIntrospectionOptions,
+  PostgresQueryExecutor,
   Provider,
   SqlOp,
   SqlConfig,
