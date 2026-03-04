@@ -2,10 +2,11 @@
 import { Command } from 'commander';
 import pkg from '../package.json';
 import { runDiff } from './commands/diff';
+import { runDoctor } from './commands/doctor';
 import { runGenerate } from './commands/generate';
-import { runIntrospect } from './commands/introspect';
 import { runImport } from './commands/import';
 import { runInit } from './commands/init';
+import { runIntrospect } from './commands/introspect';
 import { runValidate } from './commands/validate';
 import { isSchemaValidationError } from './domain';
 import { EXIT_CODES } from './utils/exitCodes';
@@ -86,6 +87,20 @@ program
       const globalOptions = program.opts();
       validateFlagExclusivity(globalOptions);
       await runDiff({ ...options, ...globalOptions });
+    } catch (error) {
+      await handleError(error);
+    }
+  });
+
+program
+  .command('doctor')
+  .description('Check live database drift against state. Exits with code 2 when drift is detected.')
+  .option('--json', 'Output structured JSON')
+  .option('--url <string>', 'PostgreSQL connection URL (defaults to DATABASE_URL)')
+  .option('--schema <list>', 'Comma-separated schema names to introspect (default: public)')
+  .action(async (options) => {
+    try {
+      await runDoctor(options);
     } catch (error) {
       await handleError(error);
     }

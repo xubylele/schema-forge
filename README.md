@@ -300,6 +300,31 @@ Exit codes:
 - `1` when one or more `error` findings are detected
 - `0` when no `error` findings are detected (warnings alone do not fail)
 
+### `schema-forge doctor`
+
+Check live database drift against your tracked `state.json`.
+
+```bash
+schema-forge doctor --url "$DATABASE_URL"
+```
+
+Use JSON mode for CI and automation:
+
+```bash
+schema-forge doctor --url "$DATABASE_URL" --json
+```
+
+Options:
+
+- `--url` - PostgreSQL connection URL (fallback: `DATABASE_URL`)
+- `--schema` - Comma-separated schema names to introspect (default: `public`)
+- `--json` - Output structured drift report JSON
+
+Exit codes:
+
+- `0` when no drift is detected (healthy)
+- `2` when drift is detected between `state.json` and live database schema
+
 ### `schema-forge introspect`
 
 Extract normalized schema directly from a live PostgreSQL database.
@@ -333,8 +358,8 @@ SchemaForge uses specific exit codes for different scenarios:
 | Exit Code | Meaning |
 | --------- | ------- |
 | `0` | Success - no changes or no destructive operations detected |
-| `1` | General error - validation failed, operation declined, missing files, etc. |
-| `2` | Schema validation error - invalid DSL syntax or structure |
+| `1` | Validation/general error - invalid DSL, operation declined, missing files, etc. |
+| `2` | Drift detected between expected state and live database schema |
 | `3` | **CI Destructive** - destructive operations detected in CI environment without `--force` |
 
 ### Destructive Operations in CI

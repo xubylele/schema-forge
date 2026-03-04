@@ -1,0 +1,12 @@
+---
+"@xubylele/schema-forge": minor
+---
+
+✨ feat(cli): add `doctor` command for live database drift detection
+
+- Introduced new `doctor` command to detect drift between a live PostgreSQL database and the tracked `state.json`.
+- Added support for PostgreSQL connection URL input.
+- Added schema selection options for targeted drift checks.
+- Implemented optional JSON output mode for CI pipelines and automation workflows.
+- Documented command usage and exit code semantics in `README.md`.
+- Expanded integration tests to validate drift detection logic, structured output format, and CI compatibility.

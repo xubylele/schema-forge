@@ -3,6 +3,7 @@ import os from 'os';
 import path from 'path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { runDiff } from '../src/commands/diff';
+import { runDoctor } from '../src/commands/doctor';
 import { runIntrospect } from '../src/commands/introspect';
 import { runValidate } from '../src/commands/validate';
 import { EXIT_CODES } from '../src/utils/exitCodes';
@@ -308,6 +309,128 @@ describe('PostgreSQL live integration', () => {
 
     const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
     await runValidate({ url: 'postgres://localhost/test', json: true });
+    const output = String(logSpy.mock.calls[0]?.[0] ?? '');
+    logSpy.mockRestore();
+
+    const report = JSON.parse(output) as {
+      missingTables: string[];
+      extraTables: string[];
+      columnDifferences: Array<{ tableName: string; missingInLive: string[]; extraInLive: string[] }>;
+      typeMismatches: Array<{ tableName: string; columnName: string; expectedType: string; actualType: string }>;
+    };
+
+    expect(report.missingTables).toEqual(['accounts']);
+    expect(report.extraTables).toEqual(['audit']);
+    expect(report.columnDifferences).toEqual([
+      {
+        tableName: 'users',
+        missingInLive: ['nickname'],
+        extraInLive: ['last_login'],
+      },
+    ]);
+    expect(report.typeMismatches).toEqual([
+      {
+        tableName: 'users',
+        columnName: 'email',
+        expectedType: 'varchar',
+        actualType: 'text',
+      },
+    ]);
+    expect(process.exitCode).toBe(EXIT_CODES.DRIFT_DETECTED);
+  });
+
+  it('doctor live mode returns drift report with deterministic ordering', async () => {
+    const schemaForgeDir = path.join(tempDir, 'schemaforge');
+    await fs.mkdir(schemaForgeDir, { recursive: true });
+
+    await fs.writeFile(
+      path.join(schemaForgeDir, 'config.json'),
+      JSON.stringify(
+        {
+          stateFile: 'schemaforge/state.json',
+        },
+        null,
+        2
+      ),
+      'utf-8'
+    );
+    await fs.writeFile(
+      path.join(schemaForgeDir, 'state.json'),
+      JSON.stringify(
+        {
+          version: 1,
+          tables: {
+            accounts: {
+              columns: {
+                id: { type: 'uuid', primaryKey: true },
+              },
+            },
+            users: {
+              columns: {
+                id: { type: 'uuid', primaryKey: true },
+                email: { type: 'varchar' },
+                nickname: { type: 'varchar' },
+              },
+            },
+          },
+        },
+        null,
+        2
+      ),
+      'utf-8'
+    );
+
+    setIntrospectionRows({
+      tables: [
+        { table_schema: 'public', table_name: 'users' },
+        { table_schema: 'public', table_name: 'audit' },
+      ],
+      columns: [
+        {
+          table_schema: 'public',
+          table_name: 'users',
+          column_name: 'id',
+          ordinal_position: 1,
+          is_nullable: 'NO',
+          data_type: 'uuid',
+          udt_name: 'uuid',
+          character_maximum_length: null,
+          numeric_precision: null,
+          numeric_scale: null,
+          column_default: null,
+        },
+        {
+          table_schema: 'public',
+          table_name: 'users',
+          column_name: 'last_login',
+          ordinal_position: 3,
+          is_nullable: 'YES',
+          data_type: 'timestamp without time zone',
+          udt_name: 'timestamp',
+          character_maximum_length: null,
+          numeric_precision: null,
+          numeric_scale: null,
+          column_default: null,
+        },
+        {
+          table_schema: 'public',
+          table_name: 'users',
+          column_name: 'email',
+          ordinal_position: 2,
+          is_nullable: 'YES',
+          data_type: 'text',
+          udt_name: 'text',
+          character_maximum_length: null,
+          numeric_precision: null,
+          numeric_scale: null,
+          column_default: null,
+        },
+      ],
+      constraints: [],
+    });
+
+    const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+    await runDoctor({ url: 'postgres://localhost/test', json: true });
     const output = String(logSpy.mock.calls[0]?.[0] ?? '');
     logSpy.mockRestore();
 
