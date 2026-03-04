@@ -245,6 +245,30 @@ Live drift validation:
 schema-forge validate --url "$DATABASE_URL" --json
 ```
 
+Live `--json` output returns a structured `DriftReport`:
+
+```json
+{
+  "missingTables": ["users_archive"],
+  "extraTables": ["audit_log"],
+  "columnDifferences": [
+    {
+      "tableName": "users",
+      "missingInLive": ["nickname"],
+      "extraInLive": ["last_login"]
+    }
+  ],
+  "typeMismatches": [
+    {
+      "tableName": "users",
+      "columnName": "email",
+      "expectedType": "varchar",
+      "actualType": "text"
+    }
+  ]
+}
+```
+
 Validation checks include:
 
 - Dropped tables (`DROP_TABLE`, error)

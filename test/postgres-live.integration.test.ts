@@ -246,6 +246,7 @@ describe('PostgreSQL live integration', () => {
               columns: {
                 id: { type: 'uuid', primaryKey: true },
                 email: { type: 'varchar' },
+                nickname: { type: 'varchar' },
               },
             },
           },
@@ -278,6 +279,19 @@ describe('PostgreSQL live integration', () => {
         {
           table_schema: 'public',
           table_name: 'users',
+          column_name: 'last_login',
+          ordinal_position: 3,
+          is_nullable: 'YES',
+          data_type: 'timestamp without time zone',
+          udt_name: 'timestamp',
+          character_maximum_length: null,
+          numeric_precision: null,
+          numeric_scale: null,
+          column_default: null,
+        },
+        {
+          table_schema: 'public',
+          table_name: 'users',
           column_name: 'email',
           ordinal_position: 2,
           is_nullable: 'YES',
@@ -300,11 +314,19 @@ describe('PostgreSQL live integration', () => {
     const report = JSON.parse(output) as {
       missingTables: string[];
       extraTables: string[];
+      columnDifferences: Array<{ tableName: string; missingInLive: string[]; extraInLive: string[] }>;
       typeMismatches: Array<{ tableName: string; columnName: string; expectedType: string; actualType: string }>;
     };
 
     expect(report.missingTables).toEqual(['accounts']);
     expect(report.extraTables).toEqual(['audit']);
+    expect(report.columnDifferences).toEqual([
+      {
+        tableName: 'users',
+        missingInLive: ['nickname'],
+        extraInLive: ['last_login'],
+      },
+    ]);
     expect(report.typeMismatches).toEqual([
       {
         tableName: 'users',
