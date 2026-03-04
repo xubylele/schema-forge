@@ -2,8 +2,6 @@
 "@xubylele/schema-forge": minor
 ---
 
-# SF-204
-
 ✨ feat(cli): add `doctor` command for live database drift detection
 
 - Introduced new `doctor` command to detect drift between a live PostgreSQL database and the tracked `state.json`.

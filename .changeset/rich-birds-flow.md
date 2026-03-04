@@ -2,8 +2,6 @@
 "@xubylele/schema-forge": minor
 ---
 
-# SF-202
-
 ✨ feat(cli): add live PostgreSQL introspection and drift validation
 
 - Added new `introspect` command to extract a normalized schema from a live PostgreSQL database.
