@@ -57,6 +57,17 @@ Run tests:
 npm test
 ```
 
+Run real-db drift integration tests:
+
+```bash
+npm run test:integration:drift
+```
+
+Notes:
+
+- Local explicit run: set `SF_RUN_REAL_DB_TESTS=true` (uses Testcontainers `postgres:16-alpine`, Docker required).
+- CI/service mode: set `SF_USE_CI_POSTGRES=true` and `DATABASE_URL` to reuse an existing Postgres service.
+
 ## Getting Started
 
 Here's a quick walkthrough to get started with SchemaForge:
@@ -393,6 +404,19 @@ When `CI=true`, SchemaForge will:
 - ✅ Fail deterministically (exit code 3) for destructive operations
 - ✅ Allow explicit override with `--force` flag
 - ❌ Not accept user input for confirmation
+
+### Drift Integration Tests in CI
+
+For drift reliability checks against a real database, run:
+
+```bash
+npm run test:integration:drift
+```
+
+The integration harness supports two deterministic paths:
+
+- `SF_USE_CI_POSTGRES=true` + `DATABASE_URL`: uses the CI Postgres service directly.
+- No CI Postgres env: spins up an isolated Testcontainers Postgres instance.
 
 ### Using `--safe` in CI
 
