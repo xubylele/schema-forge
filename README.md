@@ -13,6 +13,7 @@ A modern CLI tool for database schema management with a clean DSL and automatic 
 - **Default Change Detection** - Detects added/removed/modified column defaults and generates ALTER COLUMN SET/DROP DEFAULT
 - **Postgres/Supabase** - Currently supports PostgreSQL and Supabase
 - **Constraint Diffing** - Detects UNIQUE and PRIMARY KEY changes with deterministic constraint names
+- **Live PostgreSQL Introspection** - Extract normalized schema directly from `information_schema`
 
 ## Installation
 
@@ -55,6 +56,17 @@ Run tests:
 ```bash
 npm test
 ```
+
+Run real-db drift integration tests:
+
+```bash
+npm run test:integration:drift
+```
+
+Notes:
+
+- Local explicit run: set `SF_RUN_REAL_DB_TESTS=true` (uses Testcontainers `postgres:16-alpine`, Docker required).
+- CI/service mode: set `SF_USE_CI_POSTGRES=true` and `DATABASE_URL` to reuse an existing Postgres service.
 
 ## Getting Started
 
@@ -205,8 +217,12 @@ schema-forge diff [--safe] [--force]
 
 - `--safe` - Block execution if destructive operations are detected (exits with error)
 - `--force` - Bypass safety checks and proceed with displaying destructive SQL (shows warning)
+- `--url` - PostgreSQL connection URL for live database diff (fallback: `DATABASE_URL`)
+- `--schema` - Comma-separated schema names to introspect (default: `public`)
 
 Shows what SQL would be generated if you ran `generate`. Useful for previewing changes. Safety behavior is the same as `generate` command. In CI environments, exits with code 3 if destructive operations are detected unless `--force` is used. See [CI Behavior](#ci-behavior) for more details.
+
+When `--url` (or `DATABASE_URL`) is provided, `diff` compares your target DSL schema against the live PostgreSQL schema introspected from `information_schema`.
 
 ### `schema-forge import`
 
@@ -234,6 +250,36 @@ Detect destructive or risky schema changes before generating/applying migrations
 schema-forge validate
 ```
 
+Live drift validation:
+
+```bash
+schema-forge validate --url "$DATABASE_URL" --json
+```
+
+Live `--json` output returns a structured `DriftReport`:
+
+```json
+{
+  "missingTables": ["users_archive"],
+  "extraTables": ["audit_log"],
+  "columnDifferences": [
+    {
+      "tableName": "users",
+      "missingInLive": ["nickname"],
+      "extraInLive": ["last_login"]
+    }
+  ],
+  "typeMismatches": [
+    {
+      "tableName": "users",
+      "columnName": "email",
+      "expectedType": "varchar",
+      "actualType": "text"
+    }
+  ]
+}
+```
+
 Validation checks include:
 
 - Dropped tables (`DROP_TABLE`, error)
@@ -247,6 +293,13 @@ Use JSON mode for CI and automation:
 schema-forge validate --json
 ```
 
+Live mode options:
+
+- `--url` - PostgreSQL connection URL for live drift validation (fallback: `DATABASE_URL`)
+- `--schema` - Comma-separated schema names to introspect (default: `public`)
+
+In live mode, exit code `2` is used when drift is detected between `state.json` and the live database.
+
 Exit codes (also see [CI Behavior](#ci-behavior)):
 
 - `3` in CI environment if destructive findings detected
@@ -257,6 +310,46 @@ Exit codes:
 
 - `1` when one or more `error` findings are detected
 - `0` when no `error` findings are detected (warnings alone do not fail)
+
+### `schema-forge doctor`
+
+Check live database drift against your tracked `state.json`.
+
+```bash
+schema-forge doctor --url "$DATABASE_URL"
+```
+
+Use JSON mode for CI and automation:
+
+```bash
+schema-forge doctor --url "$DATABASE_URL" --json
+```
+
+Options:
+
+- `--url` - PostgreSQL connection URL (fallback: `DATABASE_URL`)
+- `--schema` - Comma-separated schema names to introspect (default: `public`)
+- `--json` - Output structured drift report JSON
+
+Exit codes:
+
+- `0` when no drift is detected (healthy)
+- `2` when drift is detected between `state.json` and live database schema
+
+### `schema-forge introspect`
+
+Extract normalized schema directly from a live PostgreSQL database.
+
+```bash
+schema-forge introspect --url "$DATABASE_URL" --json
+```
+
+**Options:**
+
+- `--url` - PostgreSQL connection URL (fallback: `DATABASE_URL`)
+- `--schema` - Comma-separated schema names to introspect (default: `public`)
+- `--json` - Output normalized schema as JSON
+- `--out <path>` - Write normalized schema JSON to a file
 
 ## CI Behavior
 
@@ -276,8 +369,8 @@ SchemaForge uses specific exit codes for different scenarios:
 | Exit Code | Meaning |
 | --------- | ------- |
 | `0` | Success - no changes or no destructive operations detected |
-| `1` | General error - validation failed, operation declined, missing files, etc. |
-| `2` | Schema validation error - invalid DSL syntax or structure |
+| `1` | Validation/general error - invalid DSL, operation declined, missing files, etc. |
+| `2` | Drift detected between expected state and live database schema |
 | `3` | **CI Destructive** - destructive operations detected in CI environment without `--force` |
 
 ### Destructive Operations in CI
@@ -311,6 +404,19 @@ When `CI=true`, SchemaForge will:
 - ✅ Fail deterministically (exit code 3) for destructive operations
 - ✅ Allow explicit override with `--force` flag
 - ❌ Not accept user input for confirmation
+
+### Drift Integration Tests in CI
+
+For drift reliability checks against a real database, run:
+
+```bash
+npm run test:integration:drift
+```
+
+The integration harness supports two deterministic paths:
+
+- `SF_USE_CI_POSTGRES=true` + `DATABASE_URL`: uses the CI Postgres service directly.
+- No CI Postgres env: spins up an isolated Testcontainers Postgres instance.
 
 ### Using `--safe` in CI
 

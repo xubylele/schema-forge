@@ -2,9 +2,11 @@
 import { Command } from 'commander';
 import pkg from '../package.json';
 import { runDiff } from './commands/diff';
+import { runDoctor } from './commands/doctor';
 import { runGenerate } from './commands/generate';
 import { runImport } from './commands/import';
 import { runInit } from './commands/init';
+import { runIntrospect } from './commands/introspect';
 import { runValidate } from './commands/validate';
 import { isSchemaValidationError } from './domain';
 import { EXIT_CODES } from './utils/exitCodes';
@@ -78,11 +80,42 @@ program
 program
   .command('diff')
   .description('Compare two schema versions and generate migration SQL. In CI environments (CI=true), exits with code 3 if destructive operations are detected unless --force is used.')
-  .action(async () => {
+  .option('--url <string>', 'PostgreSQL connection URL for live diff (defaults to DATABASE_URL)')
+  .option('--schema <list>', 'Comma-separated schema names to introspect (default: public)')
+  .action(async (options) => {
     try {
       const globalOptions = program.opts();
       validateFlagExclusivity(globalOptions);
-      await runDiff(globalOptions);
+      await runDiff({ ...options, ...globalOptions });
+    } catch (error) {
+      await handleError(error);
+    }
+  });
+
+program
+  .command('doctor')
+  .description('Check live database drift against state. Exits with code 2 when drift is detected.')
+  .option('--json', 'Output structured JSON')
+  .option('--url <string>', 'PostgreSQL connection URL (defaults to DATABASE_URL)')
+  .option('--schema <list>', 'Comma-separated schema names to introspect (default: public)')
+  .action(async (options) => {
+    try {
+      await runDoctor(options);
+    } catch (error) {
+      await handleError(error);
+    }
+  });
+
+program
+  .command('introspect')
+  .description('Extract normalized live schema from PostgreSQL')
+  .option('--url <string>', 'PostgreSQL connection URL (defaults to DATABASE_URL)')
+  .option('--schema <list>', 'Comma-separated schema names (default: public)')
+  .option('--json', 'Output normalized schema JSON to stdout')
+  .option('--out <path>', 'Write normalized schema JSON to a file')
+  .action(async (options) => {
+    try {
+      await runIntrospect(options);
     } catch (error) {
       await handleError(error);
     }
@@ -105,6 +138,8 @@ program
   .command('validate')
   .description('Detect destructive or risky schema changes. In CI environments (CI=true), exits with code 3 if destructive operations are detected.')
   .option('--json', 'Output structured JSON')
+  .option('--url <string>', 'PostgreSQL connection URL for live drift validation (defaults to DATABASE_URL)')
+  .option('--schema <list>', 'Comma-separated schema names to introspect (default: public)')
   .action(async (options) => {
     try {
       await runValidate(options);
