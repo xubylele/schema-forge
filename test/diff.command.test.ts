@@ -8,15 +8,23 @@ import { isSchemaValidationError } from '../src/domain';
 describe('runDiff provider bridge', () => {
   let tempDir: string;
   let originalCwd: string;
+  let originalDatabaseUrl: string | undefined;
 
   beforeEach(async () => {
     originalCwd = process.cwd();
+    originalDatabaseUrl = process.env.DATABASE_URL;
+    delete process.env.DATABASE_URL;
     tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'schemaforge-diff-'));
     process.chdir(tempDir);
   });
 
   afterEach(async () => {
     process.chdir(originalCwd);
+    if (originalDatabaseUrl === undefined) {
+      delete process.env.DATABASE_URL;
+    } else {
+      process.env.DATABASE_URL = originalDatabaseUrl;
+    }
     await fs.rm(tempDir, { recursive: true, force: true });
   });
 
@@ -82,15 +90,23 @@ describe('runDiff provider bridge', () => {
 describe('runDiff --safe flag', () => {
   let tempDir: string;
   let originalCwd: string;
+  let originalDatabaseUrl: string | undefined;
 
   beforeEach(async () => {
     originalCwd = process.cwd();
+    originalDatabaseUrl = process.env.DATABASE_URL;
+    delete process.env.DATABASE_URL;
     tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'schemaforge-diff-safe-'));
     process.chdir(tempDir);
   });
 
   afterEach(async () => {
     process.chdir(originalCwd);
+    if (originalDatabaseUrl === undefined) {
+      delete process.env.DATABASE_URL;
+    } else {
+      process.env.DATABASE_URL = originalDatabaseUrl;
+    }
     await fs.rm(tempDir, { recursive: true, force: true });
   });
 
