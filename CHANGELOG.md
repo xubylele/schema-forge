@@ -1,5 +1,30 @@
 # Changelog
 
+## 1.7.0
+
+### Minor Changes
+
+- 6cac56f: ✨ feat(cli): add `doctor` command for live database drift detection
+
+  - Introduced new `doctor` command to detect drift between a live PostgreSQL database and the tracked `state.json`.
+  - Added support for PostgreSQL connection URL input.
+  - Added schema selection options for targeted drift checks.
+  - Implemented optional JSON output mode for CI pipelines and automation workflows.
+  - Documented command usage and exit code semantics in `README.md`.
+  - Added real PostgreSQL drift integration tests (Testcontainers locally, CI Postgres service in pipelines).
+  - Added deterministic JSON assertions for `doctor --json` and `validate --url --json` across schema creation orders.
+  - Wired CI to run drift integration tests against a real Postgres service with explicit health checks.
+
+- 6cac56f: ✨ feat(cli): add live PostgreSQL introspection and drift validation
+
+  - Added new `introspect` command to extract a normalized schema from a live PostgreSQL database.
+  - Extended `diff` and `validate` commands to support live database comparison via connection URL.
+  - Live `validate --url --json` now returns a structured DriftReport (`missingTables`, `extraTables`, `columnDifferences`, `typeMismatches`).
+  - Introduced CLI options to specify target schemas during introspection and validation.
+  - Integrated live introspection flow with existing diff engine for drift detection.
+  - Updated dependencies for PostgreSQL client compatibility.
+  - Improved `README.md` documentation with usage examples and connection configuration guidance.
+
 ## 1.6.1
 
 ### Patch Changes
