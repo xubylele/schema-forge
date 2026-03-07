@@ -1,0 +1,34 @@
+{
+  "version": "1.0",
+  "description": "Machine-readable CLI exit code contract for Schema Forge. Used by CI and tooling to interpret process exit codes.",
+  "exitCodes": [
+    {
+      "code": 0,
+      "name": "SUCCESS",
+      "description": "Successful operation; no changes or no destructive operations detected."
+    },
+    {
+      "code": 1,
+      "name": "VALIDATION_ERROR",
+      "description": "Validation or general error: invalid DSL syntax, config errors, missing files, or operation declined (e.g. destructive changes with --safe)."
+    },
+    {
+      "code": 2,
+      "name": "DRIFT_DETECTED",
+      "description": "Drift detected between expected state (state.json) and live database schema."
+    },
+    {
+      "code": 3,
+      "name": "CI_DESTRUCTIVE",
+      "description": "Destructive operations detected in CI environment without --force."
+    }
+  ],
+  "commands": {
+    "validate": [0, 1, 2, 3],
+    "doctor": [0, 2],
+    "diff": [0, 1, 3],
+    "generate": [0, 1, 3],
+    "init": [0],
+    "import": [0]
+  }
+}
