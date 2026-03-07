@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.8.1
+
+### Patch Changes
+
+- 55c9bdc: ⬆️ chore: update dependencies and documentation
+
+  - Bump `@xubylele/schema-forge-core` to `1.3.1`.
+  - Update homepage URL in `package.json` to `https://schemaforge.xuby.cl/`.
+  - Update `README.md` to reflect the new website link.
+
 ## 1.8.0
 
 ### Minor Changes
