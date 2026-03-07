@@ -29,6 +29,19 @@ Or use directly with npx (no installation required):
 npx @xubylele/schema-forge init
 ```
 
+### Programmatic API
+
+Use the programmatic API from Node (e.g. scripts, GitHub Actions) instead of invoking the CLI via shell:
+
+```js
+const { generate, EXIT_CODES } = require('@xubylele/schema-forge/api');
+
+const result = await generate({ name: 'MyMigration' });
+if (result.exitCode !== EXIT_CODES.SUCCESS) process.exit(result.exitCode);
+```
+
+**Exports:** `init`, `generate`, `diff`, `doctor`, `validate`, `introspect`, `importSchema` (each returns `Promise<RunResult>`), `RunResult` (`{ exitCode: number }`), `EXIT_CODES`, and option types (`GenerateOptions`, `DiffOptions`, etc.). Entrypoint: `@xubylele/schema-forge/api`. Exit code semantics: [docs/exit-codes.json](docs/exit-codes.json).
+
 ## Development
 
 Clone the repository and install dependencies:
@@ -298,18 +311,7 @@ Live mode options:
 - `--url` - PostgreSQL connection URL for live drift validation (fallback: `DATABASE_URL`)
 - `--schema` - Comma-separated schema names to introspect (default: `public`)
 
-In live mode, exit code `2` is used when drift is detected between `state.json` and the live database.
-
-Exit codes (also see [CI Behavior](#ci-behavior)):
-
-- `3` in CI environment if destructive findings detected
-- `1` if one or more `error` findings are detected
-- `0` if no `error` findings are detected (warnings alone do not fail)
-
-Exit codes:
-
-- `1` when one or more `error` findings are detected
-- `0` when no `error` findings are detected (warnings alone do not fail)
+In live mode, exit code `2` is used when drift is detected between `state.json` and the live database. For all exit codes used by `validate`, see [Exit code standards](#exit-code-standards).
 
 ### `schema-forge doctor`
 
@@ -331,10 +333,7 @@ Options:
 - `--schema` - Comma-separated schema names to introspect (default: `public`)
 - `--json` - Output structured drift report JSON
 
-Exit codes:
-
-- `0` when no drift is detected (healthy)
-- `2` when drift is detected between `state.json` and live database schema
+Exit codes: see [Exit code standards](#exit-code-standards) (doctor uses 0, 2).
 
 ### `schema-forge introspect`
 
@@ -362,16 +361,29 @@ CI mode is automatically activated when either environment variable is set:
 - `CI=true`
 - `CONTINUOUS_INTEGRATION=true`
 
-### Exit Codes
+### Exit code standards
 
-SchemaForge uses specific exit codes for different scenarios:
+SchemaForge uses specific exit codes for deterministic CI and script behavior. The following is the single source of truth.
 
-| Exit Code | Meaning |
-| --------- | ------- |
-| `0` | Success - no changes or no destructive operations detected |
-| `1` | Validation/general error - invalid DSL, operation declined, missing files, etc. |
-| `2` | Drift detected between expected state and live database schema |
-| `3` | **CI Destructive** - destructive operations detected in CI environment without `--force` |
+| Exit Code | Name | Meaning |
+| --------- | ---- | ------- |
+| `0` | SUCCESS | No changes or no destructive operations detected |
+| `1` | VALIDATION_ERROR | Invalid DSL, config errors, missing files, or operation declined (e.g. with `--safe`) |
+| `2` | DRIFT_DETECTED | Drift between expected state and live database schema |
+| `3` | CI_DESTRUCTIVE | Destructive operations detected in CI without `--force` |
+
+**Per-command exit codes:**
+
+| Command | Possible exit codes |
+| ------- | -------------------- |
+| `validate` | 0, 1, 2, 3 |
+| `doctor` | 0, 2 |
+| `diff`, `generate` | 0, 1, 3 |
+| `init`, `import` | 0 |
+
+(Global CLI errors, e.g. unknown command or missing config, exit with 1.)
+
+A machine-readable exit code contract is available at [docs/exit-codes.json](docs/exit-codes.json). It includes a `version` field and an optional `commands` map for tooling.
 
 ### Destructive Operations in CI
 
@@ -428,6 +440,20 @@ schema-forge generate --safe
 ```
 
 This is useful for strict CI pipelines where all destructive changes must be reviewed and merged separately.
+
+### Using exit codes in CI
+
+In CI, rely on the process exit code to fail the job when validation or safety checks fail. Example with a shell script:
+
+```bash
+schema-forge validate --json
+if [ $? -ne 0 ]; then
+  echo "Schema validation failed (exit code: $?)"
+  exit 1
+fi
+```
+
+When using the [schema-forge-action](https://github.com/xubylele/schema-forge-action), the action passes through the CLI exit code: a non-zero exit from Schema Forge fails the job with that same code, so no extra script is needed.
 
 ## Constraint Change Detection
 
