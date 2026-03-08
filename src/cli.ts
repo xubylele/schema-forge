@@ -54,10 +54,15 @@ async function handleError(error: unknown): Promise<void> {
 // Register commands
 program
   .command('init')
-  .description('Initialize a new schema project')
-  .action(async () => {
+  .description(
+    'Initialize a new schema project. Optional provider: postgres (default) or supabase. Supabase uses supabase/migrations for output.'
+  )
+  .argument('[provider]', 'Database provider: postgres or supabase')
+  .option('--provider <provider>', 'Database provider: postgres or supabase (overrides argument)')
+  .action(async (providerArg, options) => {
     try {
-      await runInit();
+      const provider = options.provider ?? providerArg;
+      await runInit({ provider });
     } catch (error) {
       await handleError(error);
     }
