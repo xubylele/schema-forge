@@ -1,4 +1,5 @@
 import { Command } from 'commander';
+import path from 'path';
 import {
   ensureDir,
   fileExists,
@@ -15,7 +16,28 @@ import {
 import { EXIT_CODES } from '../utils/exitCodes';
 import { info, success } from '../utils/output';
 
-export async function runInit(): Promise<void> {
+export type InitProvider = 'postgres' | 'supabase';
+
+const ALLOWED_PROVIDERS: InitProvider[] = ['postgres', 'supabase'];
+
+export interface InitOptions {
+  provider?: string;
+}
+
+function resolveInitProvider(provider?: string): InitProvider {
+  if (!provider) {
+    return 'postgres';
+  }
+  const normalized = provider.trim().toLowerCase();
+  if (ALLOWED_PROVIDERS.includes(normalized as InitProvider)) {
+    return normalized as InitProvider;
+  }
+  throw new Error(
+    `Invalid provider "${provider}". Allowed values: ${ALLOWED_PROVIDERS.join(', ')}.`
+  );
+}
+
+export async function runInit(options?: InitOptions): Promise<void> {
   const root = getProjectRoot();
   const schemaForgeDir = getSchemaForgeDir(root);
 
@@ -39,6 +61,8 @@ export async function runInit(): Promise<void> {
     throw new Error(`${statePath} already exists`);
   }
 
+  const provider = resolveInitProvider(options?.provider);
+
   info('Initializing schema project...');
 
   // Create schemaforge directory
@@ -56,10 +80,27 @@ table users {
   await writeTextFile(schemaFilePath, schemaContent);
   success(`Created ${schemaFilePath}`);
 
-  // Create config.json
+  let outputDir: string;
+  if (provider === 'supabase') {
+    const supabaseDir = path.join(root, 'supabase');
+    const migrationsDir = path.join(root, 'supabase', 'migrations');
+    if (!(await fileExists(supabaseDir))) {
+      await ensureDir(migrationsDir);
+      success(`Created supabase/migrations`);
+    } else {
+      await ensureDir(migrationsDir);
+      success(`Using existing supabase/; migrations at supabase/migrations`);
+    }
+    outputDir = 'supabase/migrations';
+  } else {
+    outputDir = 'migrations';
+    await ensureDir(path.join(root, outputDir));
+    success(`Created ${outputDir}`);
+  }
+
   const config = {
-    provider: 'postgres',
-    outputDir: 'migrations',
+    provider,
+    outputDir,
     schemaFile: 'schemaforge/schema.sf',
     stateFile: 'schemaforge/state.json',
     sql: {
@@ -70,18 +111,12 @@ table users {
   await writeJsonFile(configPath, config);
   success(`Created ${configPath}`);
 
-  // Create state.json
   const state = {
     version: 1,
     tables: {}
   };
   await writeJsonFile(statePath, state);
   success(`Created ${statePath}`);
-
-  // Create output directory if it doesn't exist
-  const outputDir = 'migrations';
-  await ensureDir(outputDir);
-  success(`Created ${outputDir}`);
 
   success('Project initialized successfully');
   info('Next steps:');
@@ -93,9 +128,16 @@ table users {
 export function createInitCommand(): Command {
   const command = new Command('init');
 
-  command.description('Initialize a new schema project').action(async () => {
-    await runInit();
-  });
+  command
+    .description(
+      'Initialize a new schema project. Optional provider: postgres (default) or supabase. Supabase uses supabase/migrations for output.'
+    )
+    .argument('[provider]', 'Database provider: postgres or supabase')
+    .option('--provider <provider>', 'Database provider: postgres or supabase (overrides argument)')
+    .action(async (providerArg: string | undefined, options: { provider?: string }) => {
+      const provider = options?.provider ?? providerArg;
+      await runInit({ provider });
+    });
 
   return command;
 }

@@ -40,7 +40,7 @@ const result = await generate({ name: 'MyMigration' });
 if (result.exitCode !== EXIT_CODES.SUCCESS) process.exit(result.exitCode);
 ```
 
-**Exports:** `init`, `generate`, `diff`, `doctor`, `validate`, `introspect`, `importSchema` (each returns `Promise<RunResult>`), `RunResult` (`{ exitCode: number }`), `EXIT_CODES`, and option types (`GenerateOptions`, `DiffOptions`, etc.). Entrypoint: `@xubylele/schema-forge/api`. Exit code semantics: [docs/exit-codes.json](docs/exit-codes.json).
+**Exports:** `init`, `generate`, `diff`, `doctor`, `validate`, `introspect`, `importSchema` (each returns `Promise<RunResult>`), `RunResult` (`{ exitCode: number }`), `EXIT_CODES`, and option types (`InitOptions`, `GenerateOptions`, `DiffOptions`, etc.). Entrypoint: `@xubylele/schema-forge/api`. Exit code semantics: [docs/exit-codes.json](docs/exit-codes.json).
 
 ## Development
 
@@ -88,15 +88,20 @@ Here's a quick walkthrough to get started with SchemaForge:
 ### 1. Initialize a new project
 
 ```bash
-schema-forge init
+schema-forge init [provider]
 ```
+
+Optional `provider`: `postgres` (default) or `supabase`. You can also use `--provider <provider>`.
+
+- **postgres** – Creates `migrations/` at the project root and sets `outputDir` to `migrations`.
+- **supabase** – Uses `supabase/migrations/` for migrations. If `supabase/` does not exist, it is created; if it already exists (e.g. from `supabase init`), SchemaForge config is set to use `supabase/migrations/`.
 
 This creates:
 
 - `schemaforge/schema.sf` - Your schema definition file
-- `schemaforge/config.json` - Project configuration
+- `schemaforge/config.json` - Project configuration (includes `provider` and `outputDir`)
 - `schemaforge/state.json` - State tracking file
-- `supabase/migrations/` - Directory for generated migrations
+- `migrations/` or `supabase/migrations/` - Directory for generated migrations (depends on provider)
 
 ### 2. Define your schema
 
@@ -186,8 +191,17 @@ For common function-style defaults, comparisons are normalized to avoid obvious 
 Initialize a new SchemaForge project in the current directory.
 
 ```bash
-schema-forge init
+schema-forge init [provider]
+schema-forge init --provider <provider>
 ```
+
+- **`[provider]`** (optional) – `postgres` or `supabase`. Default is `postgres`.
+- **`--provider <provider>`** – Same as above; overrides the positional argument if both are given.
+
+**Behavior:**
+
+- **postgres** (default): Creates `migrations/` at the project root. Config gets `provider: "postgres"` and `outputDir: "migrations"`.
+- **supabase**: Uses `supabase/migrations/` for generated migrations. If the `supabase/` folder does not exist, it is created along with `supabase/migrations/`. If `supabase/` already exists (e.g. from an existing Supabase project), only `supabase/migrations/` is ensured and config is set to use it. Config gets `provider: "supabase"` and `outputDir: "supabase/migrations"`.
 
 Creates the necessary directory structure and configuration files.
 
@@ -578,6 +592,8 @@ table profiles {
 
 ## Project Structure
 
+With **postgres** (default), migrations live in `migrations/` at the project root. With **supabase**, they live in `supabase/migrations/`. Example for a Supabase-backed project:
+
 ```bash
 your-project/
 +-- schemaforge/
@@ -585,14 +601,16 @@ your-project/
 |   +-- config.json        # Project configuration
 |   \-- state.json         # State tracking (auto-generated)
 \-- supabase/
-  \-- migrations/        # Generated SQL migrations
+  \-- migrations/        # Generated SQL migrations (when provider is supabase)
     +-- 20240101120000-initial.sql
     \-- 20240101120100-add-user-avatar.sql
 ```
 
+For postgres, replace `supabase/migrations/` with a top-level `migrations/` directory.
+
 ## Configuration
 
-The `schemaforge/config.json` file contains project configuration:
+The `schemaforge/config.json` file contains project configuration. The `provider` and `outputDir` values are set by `schema-forge init` based on the provider you choose:
 
 ```json
 {
@@ -607,18 +625,21 @@ The `schemaforge/config.json` file contains project configuration:
 }
 ```
 
+- **postgres**: `provider: "postgres"`, `outputDir: "migrations"`.
+- **supabase**: `provider: "supabase"`, `outputDir: "supabase/migrations"`.
+
 ## Supported Databases
 
 Currently supports:
 
-- PostgreSQL (`postgres`)
-- Supabase (`supabase`)
+- PostgreSQL (`postgres`) – default; migrations in `migrations/`
+- Supabase (`supabase`) – migrations in `supabase/migrations/`; choose at init with `schema-forge init supabase`
 
 ## Development Workflow
 
 A typical development workflow looks like this:
 
-1. **Initialize** - `schema-forge init` (one time)
+1. **Initialize** - `schema-forge init` or `schema-forge init supabase` (one time)
 2. **Edit schema** - Modify `schemaforge/schema.sf`
 3. **Preview changes** - `schema-forge diff` (optional)
 4. **Generate migration** - `schema-forge generate --name "description"`
