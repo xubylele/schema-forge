@@ -275,6 +275,58 @@ describe('runValidate', () => {
       expect(process.exitCode).toBe(EXIT_CODES.CI_DESTRUCTIVE);
     });
 
+    it('returns exit code 1 (not 3) in CI with destructive changes when --force is set', async () => {
+      process.env.CI = 'true';
+      const schemaForgeDir = path.join(tempDir, 'schemaforge');
+
+      await fs.mkdir(schemaForgeDir, { recursive: true });
+      await fs.writeFile(
+        path.join(schemaForgeDir, 'config.json'),
+        JSON.stringify(
+          {
+            schemaFile: 'schemaforge/schema.sf',
+            stateFile: 'schemaforge/state.json',
+            outputDir: 'migrations',
+          },
+          null,
+          2
+        ),
+        'utf-8'
+      );
+      await fs.writeFile(
+        path.join(schemaForgeDir, 'state.json'),
+        JSON.stringify(
+          {
+            version: 1,
+            tables: {
+              users: {
+                columns: {
+                  id: { type: 'uuid', primaryKey: true },
+                  avatar_url: { type: 'text' },
+                },
+              },
+            },
+          },
+          null,
+          2
+        ),
+        'utf-8'
+      );
+      await fs.writeFile(
+        path.join(schemaForgeDir, 'schema.sf'),
+        `table users {\n  id uuid pk\n}\n`,
+        'utf-8'
+      );
+
+      const logSpy = vi.spyOn(console, 'log').mockImplementation(() => { });
+
+      await runValidate({ force: true });
+
+      logSpy.mockRestore();
+      expect(process.exitCode).not.toBe(EXIT_CODES.CI_DESTRUCTIVE);
+      expect(process.exitCode).toBe(EXIT_CODES.VALIDATION_ERROR);
+    });
+
     it('returns exit code 3 in CI with warning findings', async () => {
       process.env.CI = 'true';
       const schemaForgeDir = path.join(tempDir, 'schemaforge');
