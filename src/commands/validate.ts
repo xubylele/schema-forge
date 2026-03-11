@@ -13,7 +13,7 @@ import {
   validateSchemaChanges
 } from '../domain';
 import { parseSchemaList, resolvePostgresConnectionString, withPostgresQueryExecutor } from '../core/postgres';
-import { EXIT_CODES } from '../utils/exitCodes';
+import { EXIT_CODES, shouldFailCIDestructive } from '../utils/exitCodes';
 import { success } from '../utils/output';
 import { hasDestructiveFindings, isCI } from '../utils/prompt';
 
@@ -21,6 +21,7 @@ export interface ValidateOptions {
   json?: boolean;
   url?: string;
   schema?: string;
+  force?: boolean;
 }
 
 interface ValidateConfig {
@@ -120,8 +121,8 @@ export async function runValidate(options: ValidateOptions = {}): Promise<void> 
   const findings = await validateSchemaChanges(previousState, schema);
   const report = await toValidationReport(findings);
 
-  // Determine exit code: 3 in CI with destructive findings, 1 if errors, 0 otherwise
-  if (isCI() && hasDestructiveFindings(findings)) {
+  // Determine exit code: 3 in CI with destructive findings unless --force, 1 if errors, 0 otherwise
+  if (shouldFailCIDestructive(isCI(), hasDestructiveFindings(findings), Boolean(options.force))) {
     process.exitCode = EXIT_CODES.CI_DESTRUCTIVE;
   } else {
     process.exitCode = report.hasErrors ? EXIT_CODES.VALIDATION_ERROR : EXIT_CODES.SUCCESS;
