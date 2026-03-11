@@ -141,13 +141,15 @@ program
 
 program
   .command('validate')
-  .description('Detect destructive or risky schema changes. In CI environments (CI=true), exits with code 3 if destructive operations are detected.')
+  .description('Detect destructive or risky schema changes. In CI environments (CI=true), exits with code 3 if destructive operations are detected unless --force is used.')
   .option('--json', 'Output structured JSON')
   .option('--url <string>', 'PostgreSQL connection URL for live drift validation (defaults to DATABASE_URL)')
   .option('--schema <list>', 'Comma-separated schema names to introspect (default: public)')
   .action(async (options) => {
     try {
-      await runValidate(options);
+      const globalOptions = program.opts();
+      validateFlagExclusivity(globalOptions);
+      await runValidate({ ...options, ...globalOptions });
     } catch (error) {
       await handleError(error);
     }

@@ -2,7 +2,7 @@
 
 A modern CLI tool for database schema management with a clean DSL and automatic SQL migration generation.
 
-**Website:** [schemaforge.xuby.cl](https://schemaforge.xuby.cl/) · **npm package:** [@xubylele/schema-forge](https://www.npmjs.com/package/@xubylele/schema-forge)
+**Website:** [schemaforge.xuby.cl](https://schemaforge.xuby.cl/) · **npm package:** [@xubylele/schema-forge](https://www.npmjs.com/package/@xubylele/schema-forge) · **Roadmap:** [ROADMAP.md](ROADMAP.md)
 
 ## Features
 
