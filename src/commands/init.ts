@@ -98,7 +98,14 @@ table users {
     success(`Created ${outputDir}`);
   }
 
-  const config = {
+  const config: {
+    provider: InitProvider;
+    outputDir: string;
+    schemaFile: string;
+    stateFile: string;
+    sql: { uuidDefault: string; timestampDefault: string };
+    migrationFileNameFormat?: 'hyphen' | 'underscore';
+  } = {
     provider,
     outputDir,
     schemaFile: 'schemaforge/schema.sf',
@@ -108,6 +115,10 @@ table users {
       timestampDefault: 'now()'
     }
   };
+  // Supabase: use hyphen (timestamp-name.sql); Supabase CLI default is underscore
+  if (provider === 'supabase') {
+    config.migrationFileNameFormat = 'hyphen';
+  }
   await writeJsonFile(configPath, config);
   success(`Created ${configPath}`);
 

@@ -75,6 +75,69 @@ describe('runGenerate integration', () => {
     expect(state.tables).toHaveProperty('users');
   });
 
+  it('uses underscore migration file name when --migration-format underscore', async () => {
+    const schemaForgeDir = path.join(tempDir, 'schemaforge');
+    const outputDir = path.join(tempDir, 'migrations');
+    await fs.mkdir(schemaForgeDir, { recursive: true });
+    const schemaPath = path.join(schemaForgeDir, 'schema.sf');
+    const configPath = path.join(schemaForgeDir, 'config.json');
+    await fs.writeFile(schemaPath, `table users {\n  id uuid pk\n}\n`, 'utf-8');
+    await fs.writeFile(
+      configPath,
+      JSON.stringify(
+        {
+          outputDir: 'migrations',
+          schemaFile: 'schemaforge/schema.sf',
+          stateFile: 'schemaforge/state.json',
+        },
+        null,
+        2
+      ),
+      'utf-8'
+    );
+    await fs.writeFile(
+      path.join(schemaForgeDir, 'state.json'),
+      JSON.stringify({ version: 1, tables: {} }, null, 2),
+      'utf-8'
+    );
+    await runGenerate({ name: 'add_users', migrationFormat: 'underscore' });
+    const migrationFiles = await fs.readdir(outputDir);
+    expect(migrationFiles).toHaveLength(1);
+    expect(migrationFiles[0]).toMatch(/^\d{14}_add-users\.sql$/);
+  });
+
+  it('uses underscore migration file name from config.migrationFileNameFormat', async () => {
+    const schemaForgeDir = path.join(tempDir, 'schemaforge');
+    const outputDir = path.join(tempDir, 'migrations');
+    await fs.mkdir(schemaForgeDir, { recursive: true });
+    const schemaPath = path.join(schemaForgeDir, 'schema.sf');
+    const configPath = path.join(schemaForgeDir, 'config.json');
+    await fs.writeFile(schemaPath, `table users {\n  id uuid pk\n}\n`, 'utf-8');
+    await fs.writeFile(
+      configPath,
+      JSON.stringify(
+        {
+          outputDir: 'migrations',
+          schemaFile: 'schemaforge/schema.sf',
+          stateFile: 'schemaforge/state.json',
+          migrationFileNameFormat: 'underscore',
+        },
+        null,
+        2
+      ),
+      'utf-8'
+    );
+    await fs.writeFile(
+      path.join(schemaForgeDir, 'state.json'),
+      JSON.stringify({ version: 1, tables: {} }, null, 2),
+      'utf-8'
+    );
+    await runGenerate({ name: 'init' });
+    const migrationFiles = await fs.readdir(outputDir);
+    expect(migrationFiles).toHaveLength(1);
+    expect(migrationFiles[0]).toMatch(/^\d{14}_init\.sql$/);
+  });
+
   it('creates ALTER COLUMN TYPE migration when a column type changes', async () => {
     const schemaForgeDir = path.join(tempDir, 'schemaforge');
     const outputDir = path.join(tempDir, 'migrations');

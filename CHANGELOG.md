@@ -1,5 +1,24 @@
 # Changelog
 
+## 1.11.0
+
+### Minor Changes
+
+- d8c99b0: ✨ feat(generate): add migration file name format option
+
+  - Add `--migration-format` option to the `generate` command to control migration file naming.
+  - Support `hyphen` (default) and `underscore` (Supabase CLI style) formats.
+  - Update `init` command to configure the default format when using the Supabase provider.
+  - Add utilities to generate migration file names based on the selected format.
+  - Update `README.md` with documentation for the new option.
+  - Add integration tests verifying migration file naming behavior.
+
+- d8c99b0: ✨ feat(config): add command to configure migration file name format
+
+  - Add `config` command to update settings in `schemaforge/config.json`.
+  - Allow users to set the migration file name format to `hyphen` or `underscore`.
+  - Update `README.md` to document the new command and usage without manual config editing.
+
 ## 1.10.1
 
 ### Patch Changes
