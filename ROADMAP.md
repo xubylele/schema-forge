@@ -92,7 +92,7 @@ schemaforge validate --force
 
 ---
 
-# 🗓 Phase 3 — Developer Experience (In progress)
+# 🗓 Phase 3 — Developer Experience (Completed)
 
 Goal: improve usability through editor integrations.
 
@@ -109,16 +109,13 @@ Features (implemented):
 * **Preview SQL** (inline SQL preview)
 * **Diff preview**
 * **Schema status bar**
-* Commands: init, generate, diff, diffPreview, previewSql
-
-Future additions:
-
-* visual diff
-* richer schema status indicator
+* **Visual diff** — structured view of schema changes (operations + safety findings) in a webview; Open SQL Preview / Copy SQL from the panel
+* **Richer schema status indicator** — click status bar to open Quick Pick (Run Diff Preview, Open Visual Diff, Generate); tooltips explain click; "checking..." state while diff runs after save
+* Commands: init, generate, diff, diffPreview, previewSql, visualDiff, statusBarClick
 
 ### Status
 
-🟡 In progress
+✅ Completed
 
 ---
 
