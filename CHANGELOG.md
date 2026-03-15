@@ -19,6 +19,16 @@
   - Allow users to set the migration file name format to `hyphen` or `underscore`.
   - Update `README.md` to document the new command and usage without manual config editing.
 
+## 1.10.1
+
+### Patch Changes
+
+- a64a983: 📝 docs(roadmap): mark Phase 3 — Developer Experience as completed
+
+  - Mark Phase 3 as completed in the roadmap.
+  - Update feature list to include visual diff support.
+  - Add schema status indicator to the roadmap items.
+
 ## 1.10.0
 
 ### Minor Changes
