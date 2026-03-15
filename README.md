@@ -270,6 +270,20 @@ Behavior:
 - Ignores unsupported SQL safely and prints warnings
 - Writes a normalized SchemaForge DSL schema file
 
+### `schema-forge config`
+
+Update `schemaforge/config.json` settings without editing the file.
+
+```bash
+schema-forge config migration-format <format>
+```
+
+**Subcommands:**
+
+- **`migration-format <format>`** – Set migration file name format: `hyphen` (e.g. `20250315120000-add-users.sql`) or `underscore` (e.g. `20250315120000_add_users.sql`, Supabase CLI style). Writes `migrationFileNameFormat` to config.
+
+Requires an initialized project. Other config keys are left unchanged.
+
 ### `schema-forge validate`
 
 Detect destructive or risky schema changes before generating/applying migrations.
@@ -628,7 +642,7 @@ The `schemaforge/config.json` file contains project configuration. The `provider
 
 - **postgres**: `provider: "postgres"`, `outputDir: "migrations"`.
 - **supabase**: `provider: "supabase"`, `outputDir: "supabase/migrations"`. Init also sets `migrationFileNameFormat: "hyphen"` so migrations are named `timestamp-name.sql` (Supabase CLI uses `timestamp_name.sql` by default; you can set `migrationFileNameFormat: "underscore"` in config or use `--migration-format underscore` to match).
-- **migrationFileNameFormat** (optional): `"hyphen"` (default) or `"underscore"`. Controls generated migration file names: `YYYYMMDDHHmmss-name.sql` vs `YYYYMMDDHHmmss_name.sql`.
+- **migrationFileNameFormat** (optional): `"hyphen"` (default) or `"underscore"`. Controls generated migration file names: `YYYYMMDDHHmmss-name.sql` vs `YYYYMMDDHHmmss_name.sql`. You can set it via **`schema-forge config migration-format <hyphen|underscore>`** instead of editing the file.
 
 ## Supported Databases
 
