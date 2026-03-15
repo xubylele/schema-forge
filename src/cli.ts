@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { Command } from 'commander';
 import pkg from '../package.json';
+import { runConfig } from './commands/config';
 import { runDiff } from './commands/diff';
 import { runDoctor } from './commands/doctor';
 import { runGenerate } from './commands/generate';
@@ -72,6 +73,7 @@ program
   .command('generate')
   .description('Generate SQL from schema files. In CI environments (CI=true), exits with code 3 if destructive operations are detected unless --force is used.')
   .option('--name <string>', 'Schema name to generate')
+  .option('--migration-format <format>', 'Migration file name: hyphen (timestamp-name.sql) or underscore (timestamp_name.sql, Supabase CLI style)')
   .action(async (options) => {
     try {
       const globalOptions = program.opts();
@@ -134,6 +136,19 @@ program
   .action(async (targetPath, options) => {
     try {
       await runImport(targetPath, options);
+    } catch (error) {
+      await handleError(error);
+    }
+  });
+
+program
+  .command('config')
+  .description('Update schemaforge/config.json settings')
+  .command('migration-format <format>')
+  .description('Set migration file name format: hyphen (timestamp-name.sql) or underscore (timestamp_name.sql)')
+  .action(async (format: string) => {
+    try {
+      await runConfig({ migrationFormat: format as 'hyphen' | 'underscore' });
     } catch (error) {
       await handleError(error);
     }

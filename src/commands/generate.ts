@@ -3,7 +3,12 @@ import path from 'path';
 import { ensureDir, fileExists, readJsonFile, readTextFile, writeTextFile } from '../core/fs';
 import { getConfigPath, getProjectRoot } from '../core/paths';
 import { resolveProvider } from '../core/provider';
-import { nowTimestamp, slugifyName } from '../core/utils';
+import {
+  migrationFileName,
+  nowTimestamp,
+  slugifyName,
+  type MigrationFileNameFormat
+} from '../core/utils';
 import {
   createSchemaValidationError,
   diffSchemas,
@@ -24,6 +29,8 @@ export interface GenerateOptions {
   name?: string;
   safe?: boolean;
   force?: boolean;
+  /** Override migration file name format: hyphen (timestamp-name.sql) or underscore (timestamp_name.sql). */
+  migrationFormat?: MigrationFileNameFormat;
 }
 
 interface GenerateConfig {
@@ -32,6 +39,8 @@ interface GenerateConfig {
   outputDir: string;
   provider?: string;
   sql?: SqlConfig;
+  /** Migration file name: 'hyphen' (default) or 'underscore' (Supabase CLI style). */
+  migrationFileNameFormat?: MigrationFileNameFormat;
 }
 
 const REQUIRED_CONFIG_FIELDS: Array<keyof GenerateConfig> = [
@@ -39,6 +48,24 @@ const REQUIRED_CONFIG_FIELDS: Array<keyof GenerateConfig> = [
   'stateFile',
   'outputDir'
 ];
+
+const MIGRATION_FORMATS: MigrationFileNameFormat[] = ['hyphen', 'underscore'];
+
+function resolveMigrationFormat(
+  cliFormat?: string,
+  configFormat?: MigrationFileNameFormat
+): MigrationFileNameFormat {
+  if (cliFormat !== undefined && cliFormat !== '') {
+    const normalized = cliFormat.trim().toLowerCase();
+    if (MIGRATION_FORMATS.includes(normalized as MigrationFileNameFormat)) {
+      return normalized as MigrationFileNameFormat;
+    }
+    throw new Error(
+      `Invalid --migration-format "${cliFormat}". Allowed: ${MIGRATION_FORMATS.join(', ')}.`
+    );
+  }
+  return configFormat ?? 'hyphen';
+}
 
 function resolveConfigPath(root: string, targetPath: string): string {
   return path.isAbsolute(targetPath) ? targetPath : path.join(root, targetPath);
@@ -141,7 +168,11 @@ export async function runGenerate(options: GenerateOptions): Promise<void> {
   const sql = await generateSql(diff, provider, config.sql);
   const timestamp = nowTimestamp();
   const slug = slugifyName(options.name ?? 'migration');
-  const fileName = `${timestamp}-${slug}.sql`;
+  const format = resolveMigrationFormat(
+    options.migrationFormat as string | undefined,
+    config.migrationFileNameFormat
+  );
+  const fileName = migrationFileName(timestamp, slug, format);
 
   await ensureDir(outputDir);
   const migrationPath = path.join(outputDir, fileName);
