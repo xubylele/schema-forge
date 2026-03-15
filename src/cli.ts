@@ -72,6 +72,7 @@ program
   .command('generate')
   .description('Generate SQL from schema files. In CI environments (CI=true), exits with code 3 if destructive operations are detected unless --force is used.')
   .option('--name <string>', 'Schema name to generate')
+  .option('--migration-format <format>', 'Migration file name: hyphen (timestamp-name.sql) or underscore (timestamp_name.sql, Supabase CLI style)')
   .action(async (options) => {
     try {
       const globalOptions = program.opts();

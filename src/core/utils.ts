@@ -48,3 +48,21 @@ export function slugifyName(name: string): string {
       .replace(/^-+|-+$/g, '')
   ) || 'migration';
 }
+
+/** Migration file name format: hyphen (timestamp-name.sql) or underscore (timestamp_name.sql, Supabase CLI style). */
+export type MigrationFileNameFormat = 'hyphen' | 'underscore';
+
+/**
+ * Builds migration filename from timestamp and slug.
+ * @param timestamp - e.g. from nowTimestamp()
+ * @param slug - e.g. from slugifyName(name)
+ * @param format - 'hyphen' => ${timestamp}-${slug}.sql, 'underscore' => ${timestamp}_${slug}.sql
+ */
+export function migrationFileName(
+  timestamp: string,
+  slug: string,
+  format: MigrationFileNameFormat = 'hyphen'
+): string {
+  const sep = format === 'underscore' ? '_' : '-';
+  return `${timestamp}${sep}${slug}.sql`;
+}
