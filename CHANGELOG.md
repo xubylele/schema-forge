@@ -1,5 +1,24 @@
 # Changelog
 
+## 1.12.0
+
+### Minor Changes
+
+- 944520d: ✨ feat(cli): add version notifier and changelog display
+
+  - Integrate `update-notifier` to alert users of new CLI versions (disabled in CI).
+  - Fetch and display changelog sections for the current version from GitHub.
+  - Add TypeScript declaration for `update-notifier`.
+  - Add tests for changelog extraction and version notification behavior.
+
+### Patch Changes
+
+- 944520d: ⬆️ chore(deps): update core version and improve documentation
+
+  - Bump `@xubylele/schema-forge-core` from `1.3.1` to `1.4.0`.
+  - Update `README.md` with Row Level Security (RLS) policy support details and examples.
+  - Update GitHub Actions to `actions/checkout@v5` and `actions/setup-node@v5`.
+
 ## 1.11.0
 
 ### Minor Changes
