@@ -37,7 +37,6 @@ function validateFlagExclusivity(options: GlobalOptions): void {
 async function handleError(error: unknown): Promise<void> {
   if ((await isSchemaValidationError(error)) && error instanceof Error) {
     printError(error.message);
-    // Validation errors (schema DSL, config, etc.) map to exit code 1
     process.exitCode = EXIT_CODES.VALIDATION_ERROR;
     return;
   }
@@ -48,11 +47,9 @@ async function handleError(error: unknown): Promise<void> {
     printError('Unexpected error');
   }
 
-  // All other errors map to validation error exit code
   process.exitCode = EXIT_CODES.VALIDATION_ERROR;
 }
 
-// Register commands
 program
   .command('init')
   .description(
@@ -191,10 +188,8 @@ async function main(): Promise<void> {
       .catch(() => {});
   }
 
-  // Parse command line arguments
   program.parse(process.argv);
 
-  // Show help if no command is provided
   if (!argv.length) {
     program.outputHelp();
   }

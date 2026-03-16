@@ -15,10 +15,6 @@ function getReleaseUrl(version: string): string {
   return `https://github.com/xubylele/schema-forge/releases/tag/v${version}`;
 }
 
-/**
- * Extracts the changelog section for a given version from Changesets-style markdown.
- * Sections start with "## X.Y.Z". Returns content from that heading until the next "## " or end of file.
- */
 export function extractChangelogSection(changelogText: string, version: string): string | null {
   const heading = `## ${version}`;
   const idx = changelogText.indexOf(heading);
@@ -45,7 +41,6 @@ async function fetchChangelogForVersion(version: string): Promise<string | null>
       const section = extractChangelogSection(text, version);
       if (section) return section;
     } catch {
-      // try next URL
     }
   }
   return null;
@@ -86,7 +81,6 @@ export async function showWhatsNewIfUpdated(currentVersion: string, argv: string
     }
     await writeJsonFile(metaPath, { lastSeenVersion: currentVersion });
   } catch {
-    // Best effort only: never block CLI execution for UX metadata.
   }
 }
 

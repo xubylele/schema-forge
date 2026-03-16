@@ -1,14 +1,3 @@
-/**
- * Programmatic API for Schema Forge.
- * Use this entrypoint when integrating from Node (e.g. scripts, GitHub Actions)
- * instead of invoking the CLI via shell.
- *
- * @example
- * const { generate, EXIT_CODES } = require('@xubylele/schema-forge/api');
- * const result = await generate({ name: 'MyMigration' });
- * if (result.exitCode !== EXIT_CODES.SUCCESS) process.exit(result.exitCode);
- */
-
 import type { DiffOptions } from './commands/diff';
 import { runDiff } from './commands/diff';
 import type { DoctorOptions } from './commands/doctor';
@@ -28,10 +17,6 @@ import { EXIT_CODES } from './utils/exitCodes';
 export { EXIT_CODES };
 export type { DiffOptions, DoctorOptions, GenerateOptions, ImportOptions, InitOptions, IntrospectOptions, ValidateOptions };
 
-/**
- * Result of a programmatic command run. Exit codes match the CLI contract.
- * @see docs/exit-codes.json
- */
 export interface RunResult {
   exitCode: number;
 }
@@ -52,53 +37,30 @@ async function runWithResult(fn: () => Promise<void>): Promise<RunResult> {
   }
 }
 
-/**
- * Initialize a new schema project in the current directory.
- * @param options.provider - Database provider: 'postgres' (default) or 'supabase'. Supabase uses supabase/migrations for output.
- */
 export async function init(options: InitOptions = {}): Promise<RunResult> {
   return runWithResult(() => runInit(options));
 }
 
-/**
- * Generate SQL migration from schema files.
- */
 export async function generate(options: GenerateOptions = {}): Promise<RunResult> {
   return runWithResult(() => runGenerate(options));
 }
 
-/**
- * Compare two schema versions and generate migration SQL (optionally against live DB).
- */
 export async function diff(options: DiffOptions = {}): Promise<RunResult> {
   return runWithResult(() => runDiff(options));
 }
 
-/**
- * Check live database drift against state.
- */
 export async function doctor(options: DoctorOptions = {}): Promise<RunResult> {
   return runWithResult(() => runDoctor(options));
 }
 
-/**
- * Validate schema and optionally check for destructive changes or live drift.
- */
 export async function validate(options: ValidateOptions = {}): Promise<RunResult> {
   return runWithResult(() => runValidate(options));
 }
 
-/**
- * Extract normalized live schema from PostgreSQL.
- */
 export async function introspect(options: IntrospectOptions = {}): Promise<RunResult> {
   return runWithResult(() => runIntrospect(options));
 }
 
-/**
- * Import schema from SQL migrations.
- * @param inputPath - Path to .sql file or migrations directory
- */
 export async function importSchema(inputPath: string, options: ImportOptions = {}): Promise<RunResult> {
   return runWithResult(() => runImport(inputPath, options));
 }

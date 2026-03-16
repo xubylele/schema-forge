@@ -121,7 +121,6 @@ export async function runValidate(options: ValidateOptions = {}): Promise<void> 
   const findings = await validateSchemaChanges(previousState, schema);
   const report = await toValidationReport(findings);
 
-  // Determine exit code: 3 in CI with destructive findings unless --force, 1 if errors, 0 otherwise
   if (shouldFailCIDestructive(isCI(), hasDestructiveFindings(findings), Boolean(options.force))) {
     process.exitCode = EXIT_CODES.CI_DESTRUCTIVE;
   } else {
