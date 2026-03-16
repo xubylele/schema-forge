@@ -170,10 +170,26 @@ program
     }
   });
 
+function shouldCheckForUpdate(argv: string[]): boolean {
+  if (process.env.CI === 'true') {
+    return false;
+  }
+  const onlyHelpOrVersion =
+    argv.length === 0 ||
+    (argv.length === 1 && ['--help', '-h', '--version', '-V'].includes(argv[0]));
+  return !onlyHelpOrVersion;
+}
+
 async function main(): Promise<void> {
   const argv = process.argv.slice(2);
   await seedLastSeenVersion(pkg.version);
   await showWhatsNewIfUpdated(pkg.version, argv);
+
+  if (shouldCheckForUpdate(argv)) {
+    import('update-notifier')
+      .then((m) => m.default({ pkg, shouldNotifyInNpmScript: false }).notify())
+      .catch(() => {});
+  }
 
   // Parse command line arguments
   program.parse(process.argv);

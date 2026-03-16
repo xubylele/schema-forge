@@ -2,7 +2,12 @@ import { promises as fs } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { seedLastSeenVersion, shouldShowWhatsNew, showWhatsNewIfUpdated } from '../src/utils/whatsNew';
+import {
+  extractChangelogSection,
+  seedLastSeenVersion,
+  shouldShowWhatsNew,
+  showWhatsNewIfUpdated
+} from '../src/utils/whatsNew';
 
 describe('whats new notice', () => {
   let tempHome: string;
@@ -57,13 +62,61 @@ describe('whats new notice', () => {
       'utf-8'
     );
 
-    const logSpy = vi.spyOn(console, 'log').mockImplementation(() => { });
+    vi.stubGlobal('fetch', () => Promise.resolve({ ok: false }));
+
+    const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
 
     await showWhatsNewIfUpdated('1.1.0', ['generate']);
-    expect(logSpy).toHaveBeenCalledOnce();
+    expect(logSpy).toHaveBeenCalled();
+    expect(logSpy.mock.calls.some((c) => String(c[0]).includes("What's new"))).toBe(true);
 
     logSpy.mockClear();
     await showWhatsNewIfUpdated('1.1.0', ['generate']);
     expect(logSpy).not.toHaveBeenCalled();
+  });
+});
+
+describe('extractChangelogSection', () => {
+  it('returns the section for the given version', () => {
+    const changelog = `# Changelog
+
+## 1.11.0
+
+### Minor Changes
+
+- feat(generate): add option
+
+## 1.10.1
+
+### Patch Changes
+
+- docs: update
+`;
+    const section = extractChangelogSection(changelog, '1.11.0');
+    expect(section).toBe(`### Minor Changes
+
+- feat(generate): add option`);
+  });
+
+  it('returns null when version heading is not present', () => {
+    const changelog = `## 1.10.0\n- change`;
+    expect(extractChangelogSection(changelog, '1.11.0')).toBeNull();
+  });
+
+  it('returns content until end of file when no next heading', () => {
+    const changelog = `## 1.0.0
+
+- initial
+`;
+    const section = extractChangelogSection(changelog, '1.0.0');
+    expect(section).toBe('- initial');
+  });
+
+  it('returns null when section is empty after heading', () => {
+    const changelog = `## 1.0.0
+
+## 0.9.0`;
+    const section = extractChangelogSection(changelog, '1.0.0');
+    expect(section).toBeNull();
   });
 });
