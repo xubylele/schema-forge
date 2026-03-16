@@ -37,7 +37,6 @@ function validateFlagExclusivity(options: GlobalOptions): void {
 async function handleError(error: unknown): Promise<void> {
   if ((await isSchemaValidationError(error)) && error instanceof Error) {
     printError(error.message);
-    // Validation errors (schema DSL, config, etc.) map to exit code 1
     process.exitCode = EXIT_CODES.VALIDATION_ERROR;
     return;
   }
@@ -48,11 +47,9 @@ async function handleError(error: unknown): Promise<void> {
     printError('Unexpected error');
   }
 
-  // All other errors map to validation error exit code
   process.exitCode = EXIT_CODES.VALIDATION_ERROR;
 }
 
-// Register commands
 program
   .command('init')
   .description(
@@ -170,15 +167,29 @@ program
     }
   });
 
+function shouldCheckForUpdate(argv: string[]): boolean {
+  if (process.env.CI === 'true') {
+    return false;
+  }
+  const onlyHelpOrVersion =
+    argv.length === 0 ||
+    (argv.length === 1 && ['--help', '-h', '--version', '-V'].includes(argv[0]));
+  return !onlyHelpOrVersion;
+}
+
 async function main(): Promise<void> {
   const argv = process.argv.slice(2);
   await seedLastSeenVersion(pkg.version);
   await showWhatsNewIfUpdated(pkg.version, argv);
 
-  // Parse command line arguments
+  if (shouldCheckForUpdate(argv)) {
+    import('update-notifier')
+      .then((m) => m.default({ pkg, shouldNotifyInNpmScript: false }).notify())
+      .catch(() => {});
+  }
+
   program.parse(process.argv);
 
-  // Show help if no command is provided
   if (!argv.length) {
     program.outputHelp();
   }

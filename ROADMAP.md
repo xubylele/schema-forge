@@ -1,379 +1,431 @@
-# 🧱 Schema Forge — Full Product Roadmap
+# Schema Forge — Free Features & Multi‑Engine Roadmap
 
-This roadmap describes the evolution of Schema Forge from a local CLI tool into a full ecosystem including Cloud services and freemium capabilities.
+## Strategic Goals
 
-The core philosophy remains:
-
-**Schema files are the single source of truth.**
-
-Everything else builds on top of this principle.
-
----
-
-# 🎯 Product Vision
-
-Schema Forge aims to become a **deterministic, declarative database schema platform**.
-
-Developers should be able to:
-
-* define schemas in a DSL
-* generate deterministic migrations
-* validate database changes safely
-* visualize and collaborate on schema evolution
-
-The system is composed of:
-
-* CLI
-* Core engine
-* VSCode extension
-* Website & Playground
-* Cloud services
-* GitHub Action
+1. Make Schema Forge the best migration CLI for PostgreSQL / Supabase.
+2. Expand the DSL to cover most database schema constructs.
+3. Enable importing existing databases (SQL or live DB) to accelerate adoption.
+4. Introduce a provider architecture to support multiple database engines.
 
 ---
 
-# 🗓 Phase 1 — Core CLI (Completed)
+# Already Shipped (Completed)
 
-Goal: build a deterministic schema workflow.
+These phases remain as the current baseline.
 
-### Features
+### Phase 1 — Core CLI ✅
 
 * DSL parser
-* schema validation
-* deterministic diff engine
+* Schema validation
+* Deterministic diff engine
 * SQL migration generator
+* Commands: `init`, `diff`, `generate`, `validate`, `import`, `introspect`, `doctor`
 
-### Commands
+### Phase 2 — Safety & Reliability ✅
 
-```
-schemaforge init
-schemaforge diff
-schemaforge generate
-schemaforge validate
-schemaforge import
-schemaforge introspect
-schemaforge doctor
-```
+* Destructive change detection
+* Safe mode (`--safe`), force mode (`--force`)
+* Interactive confirmations, JSON output for CI
+* CI-aware exit codes
 
-* **init**: Optional provider `postgres` (default) or `supabase`; Supabase uses `supabase/migrations` for output.
-* **introspect**: Extract normalized schema from PostgreSQL (`--url`, `--schema`, `--json`, `--out`).
-* **doctor**: Check live database drift against state; exits with code 2 when drift detected; supports `--json`.
+### Phase 3 — Developer Experience ✅
 
-### Status
-
-✅ Completed
-
----
-
-# 🗓 Phase 2 — Safety & Reliability (Completed)
-
-Goal: make migrations safe for real production usage.
-
-### Features
-
-* destructive change detection
-* safe mode (`--safe`)
-* force mode (`--force`) to bypass safety and CI checks (supported on `diff`, `generate`, and `validate`)
-* interactive confirmations for risky operations
-* JSON output for CI (`validate --json`, `doctor --json`)
-* CI-aware exit codes: exit 3 when destructive operations detected in CI unless `--force`
-
-### Example
-
-```
-schemaforge diff --safe
-schemaforge validate --json
-schemaforge validate --force
-```
-
-### Status
-
-✅ Completed
-
----
-
-# 🗓 Phase 3 — Developer Experience (Completed)
-
-Goal: improve usability through editor integrations.
-
-### VSCode Extension
-
-Features (implemented):
-
-* syntax highlighting (grammar for `.sf`)
-* diagnostics
-* semantic validation rules
-* completion provider
-* hover documentation
-* code actions
-* **Preview SQL** (inline SQL preview)
-* **Diff preview**
-* **Schema status bar**
-* **Visual diff** — structured view of schema changes (operations + safety findings) in a webview; Open SQL Preview / Copy SQL from the panel
-* **Richer schema status indicator** — click status bar to open Quick Pick (Run Diff Preview, Open Visual Diff, Generate); tooltips explain click; "checking..." state while diff runs after save
+* VSCode extension: syntax, diagnostics, completion, hover, code actions
+* Preview SQL, diff preview, visual diff, schema status bar
 * Commands: init, generate, diff, diffPreview, previewSql, visualDiff, statusBarClick
 
-### Status
+### In Progress
 
-✅ Completed
-
----
-
-# 🗓 Phase 4 — Website & Playground (In progress)
-
-Goal: make Schema Forge easy to understand and try.
-
-### Website
-
-* landing page
-* quickstart
-* documentation (DSL, CLI, migration workflow)
-* product overview
-* **roadmap** page
-* **Login / Signup** (email–password; site posts to Cloud API, then sets Supabase session)
-* **Auth callback** (OAuth and session handling)
-* **CLI login page** (device flow: user code, approve, token for `schemaforge login`)
-
-### Playground
-
-Interactive DSL editor that runs **schema-forge-core in the browser** (browser build).
-
-Features:
-
-* live SQL generation
-* schema validation
-* baseline + diff preview (migration SQL from a set baseline)
-
-### Status
-
-🟡 In progress
+* Website (docs, login, signup, CLI login page), playground (browser core)
+* Schema Forge Cloud (auth, device login for CLI)
+* GitHub Action (validate, doctor, diff, PR comment preview)
 
 ---
 
-# 🗓 Phase 5 — Schema Forge Cloud (In progress)
+# Phase 1 — PostgreSQL Schema Coverage
 
-Goal: enable collaboration and advanced capabilities.
+## Week 1 — Policies (RLS)
 
-Cloud architecture:
+### Ticket: DSL support for policies
 
-**CLI → Cloud API**
+Goal: Add PostgreSQL RLS policy support to the DSL.
 
-Stack:
+Tasks:
 
-* Express
-* Supabase (Auth; optional PostgreSQL for app data)
-* JWT verification via Supabase JWKS
+* Add PolicyNode to AST
+* Extend parser
+* Add diff detection
+* Add SQL generator
 
-### Cloud Features (current)
-
-* **Authentication**
-  * Email/password signup and login (proxied to Supabase)
-  * GitHub OAuth (prepared; redirect and callback implemented)
-  * **CLI device login**: `POST /api/auth/cli/device`, `POST /api/auth/cli/token`, `POST /api/auth/cli/approve`; device sessions in-memory (single-instance)
-* **Protected routes**: `/api/auth/me`, `/api/protected/*` with Supabase JWT
-* **Health**: `/api/health`
-
-Not yet implemented:
-
-* Stripe / license system
-* schema state storage
-* Multi-instance device store (e.g. Redis/DB)
-
-### CLI login flow
+Example DSL
 
 ```
-schemaforge login
-schemaforge logout
+policy "Users can read themselves" on users
+for select
+using auth.uid() = id
 ```
-
-Token stored in user config dir; browser opens site CLI-login page; user approves; CLI polls for token.
-
-### Status
-
-🟡 In progress
 
 ---
 
-# 🗓 Phase 6 — Freemium Model (Planned)
+## Week 2 — Views + Indexes
 
-Goal: keep the core open while enabling premium services.
+### Ticket: DSL support for views
 
-### Free Tier
+Tasks:
 
-Available to all users.
+* Add ViewNode to AST
+* Parser support
+* Diff detection
+* SQL generation
 
-Features:
+### Ticket: DSL support for indexes
 
-* CLI
-* schema DSL
-* migration generation
-* PostgreSQL support
-* Supabase compatibility
-* VSCode extension
-* playground
-* validation
+Support:
 
-These remain permanently free.
-
-### Pro Tier
-
-Available via Cloud subscription.
-
-Premium features:
-
-* migration risk analysis
-* schema graph generation
-* cloud schema state sync
-* CI insights
-
-### Status
-
-⬜ Planned (no Stripe or license checks in codebase yet)
-
----
-
-# 🗓 Phase 7 — Advanced Platform Features (Planned)
-
-Goal: expand the platform beyond local tooling.
-
-### Schema Graph
-
-Generate relational graph representation.
-
-```
-schemaforge graph
-```
-
-Used for:
-
-* visualization
-* documentation
-* impact analysis
-
-### Migration Risk Analysis
-
-Analyze migrations before execution (CLI already surfaces destructive/warning findings; dedicated “risk analysis” product feature is planned).
-
-Example warnings:
-
-* table rewrite risk
-* destructive operations
-
-### Cloud Schema State
-
-Synchronize schema state across machines.
-
-Commands:
-
-```
-schemaforge cloud push
-schemaforge cloud pull
-```
-
-### Status
-
-⬜ Planned
-
----
-
-# 🗓 Phase 8 — CI & Automation (In progress)
-
-Goal: integrate Schema Forge with development pipelines.
-
-### GitHub Action (schema-forge-action)
-
-* Run Schema Forge in CI: **validate**, **doctor**, **diff** (configurable command + args).
-* Optional **comment-preview**: when `command` is `diff` and `comment-preview` is true, post or update a PR comment with migration SQL (pull_request only).
-* Inputs: `command`, `args`, `schema-forge-version`, `working-directory`, `comment-preview`, `token`.
+* unique
+* partial
+* expression indexes
 
 Example:
 
-```yaml
-- uses: xubylele/schema-forge-action@v1
-  with:
-    command: validate
-    args: --json
 ```
-
-```yaml
-- uses: xubylele/schema-forge-action@v1
-  with:
-    command: diff
-    comment-preview: true
+index users_email_idx on users(email)
 ```
-
-### Status
-
-🟡 In progress (Action shipped; schema validation in PRs and migration previews available)
 
 ---
 
-# 🗓 Phase 9 — Multi‑Provider Support (Planned)
+## Week 3 — Functions
 
-Goal: extend Schema Forge beyond PostgreSQL.
+### Ticket: DSL support for functions
 
-Provider architecture:
+Tasks:
+
+* AST node
+* parser support
+* function body hashing
+* SQL generation
+* diff detection
+
+Example:
 
 ```
-DatabaseProvider
+function get_user_posts(user_id uuid)
+returns setof posts
+language sql
+as $$
+select * from posts where user_id = user_id
+$$
 ```
 
-Current: **postgres**, **supabase** (init/generate output).
+---
 
-Planned providers:
+## Week 4 — Triggers
 
-* MySQL
-* SQLite
+### Ticket: DSL support for triggers
 
-PostgreSQL remains the primary provider.
+Example:
 
-### Status
-
-⬜ Planned
+```
+trigger update_timestamp
+before update on users
+for each row
+execute function update_updated_at()
+```
 
 ---
 
-# 🗓 Phase 10 — Visual Schema Platform (Planned)
+# Phase 2 — Migration Engine Improvements
 
-Goal: transform Schema Forge into a full schema platform.
+## Week 5 — Migration Planner
 
-Future features:
+### Ticket: Implement migration planner
 
-* visual schema explorer
-* migration timeline
-* schema history
-* collaborative review
+Command:
 
-### Status
+```
+schemaforge plan
+```
 
-⬜ Planned
+Output example:
 
----
-
-# 🎯 Long‑Term Vision
-
-Schema Forge becomes a **complete schema management platform**.
-
-Capabilities include:
-
-* deterministic migrations
-* schema visualization
-* automated analysis
-* collaborative workflows
-
-While maintaining the core principle:
-
-**the schema file is always the source of truth.**
+```
++ create table posts
++ add column avatar_url
+~ modify column email type
+```
 
 ---
 
-# 📦 Repositories (current)
+## Week 6 — Migration Safety Checks
 
-| Repo | Purpose |
-|------|--------|
-| **schema-forge** | CLI (init, diff, generate, validate, import, introspect, doctor, login, logout) |
-| **schema-forge-core** | Parser, diff, safety, drift, SQL generator, browser build for playground |
-| **schema-forge-vscode** | VSCode extension (syntax, diagnostics, completion, preview, status bar) |
-| **schema-forge-site** | Next.js site (landing, docs, playground, login, signup, cli-login) |
-| **schema-forge-cloud** | Express API (Supabase Auth, device login, protected routes) |
-| **schema-forge-action** | GitHub Action (validate, doctor, diff; optional PR comment preview) |
+### Ticket: Detect destructive migrations
+
+Detect:
+
+* DROP TABLE
+* DROP COLUMN
+* ALTER TYPE
+
+CLI should warn before execution.
+
+---
+
+## Week 7 — Migration Status + Verification
+
+### Ticket: Implement status command
+
+Command:
+
+```
+schemaforge status
+```
+
+### Ticket: Migration verification
+
+Command:
+
+```
+schemaforge verify
+```
+
+Checks:
+
+* migration history
+* state.json integrity
+* schema drift
+
+---
+
+## Week 8 — Down Migrations
+
+### Ticket: Generate down migrations automatically
+
+Files generated:
+
+```
+up.sql
+down.sql
+```
+
+---
+
+# Phase 3 — SQL / Database Import
+
+## Week 9 — SQL → Schema Forge Import
+
+### Ticket: SQL parser for schema import
+
+Goal:
+Allow importing an existing SQL schema into Schema Forge DSL.
+
+Command:
+
+```
+schemaforge import sql schema.sql
+```
+
+Output:
+
+```
+schemaforge/schema.sf
+```
+
+### Ticket: SQL → AST converter
+
+Convert SQL constructs into Schema Forge AST.
+
+Support:
+
+* CREATE TABLE
+* columns
+* primary keys
+* foreign keys
+* defaults
+* indexes
+
+### Ticket: AST → DSL writer
+
+Convert parsed AST to `.sf` DSL file.
+
+Example conversion
+
+SQL
+
+```
+CREATE TABLE users (
+ id uuid primary key,
+ email text unique
+);
+```
+
+DSL
+
+```
+table users {
+
+ id uuid pk
+ email text unique
+
+}
+```
+
+---
+
+## Week 10 — Live Database Introspection
+
+### Ticket: Database schema introspector
+
+Command:
+
+```
+schemaforge pull
+```
+
+Behavior:
+
+* connect to database
+* read schema metadata
+* generate schema.sf
+
+Sources:
+
+* information_schema
+* pg_catalog
+
+---
+
+# Phase 4 — Advanced Diff Intelligence
+
+## Week 11 — Rename Detection
+
+### Ticket: Column rename detection
+
+Detect renames instead of drop/add operations.
+
+Example:
+
+```
+email → user_email
+```
+
+---
+
+## Week 12 — Migration Squash
+
+### Ticket: Migration squash command
+
+Command:
+
+```
+schemaforge squash
+```
+
+Combine many migrations into a baseline.
+
+---
+
+# Phase 5 — SQL Import Improvements
+
+## Week 13 — Extended SQL Import
+
+### Ticket: Import indexes from SQL
+
+Support:
+
+```
+CREATE INDEX
+CREATE UNIQUE INDEX
+```
+
+### Ticket: Import foreign keys
+
+Support:
+
+```
+REFERENCES
+ON DELETE
+ON UPDATE
+```
+
+### Ticket: Import views
+
+Parse:
+
+```
+CREATE VIEW
+```
+
+### Ticket: Import functions
+
+Parse:
+
+```
+CREATE FUNCTION
+```
+
+---
+
+# Phase 6 — Provider Architecture
+
+## Week 14 — Provider abstraction
+
+### Ticket: Define provider interface
+
+Example:
+
+```ts
+interface Provider {
+  name: string
+
+  generateSQL(plan: MigrationPlan): SQLStatement[]
+
+  introspectDatabase(connection): SchemaState
+
+  normalizeSchema(ast: SchemaAST): ProviderSchema
+}
+```
+
+### Ticket: Extract PostgreSQL provider
+
+Move SQL generation to a dedicated provider package.
+
+```
+@schema-forge/provider-postgres
+```
+
+---
+
+# Phase 7 — Multi‑Database Support
+
+## Week 15–17 — MySQL Provider
+
+Tickets:
+
+* MySQL SQL generator
+* MySQL schema introspector
+* MySQL diff compatibility
+
+---
+
+## Week 18 — SQLite Provider
+
+Implement SQLite provider for lightweight development environments.
+
+---
+
+# Final CLI Surface
+
+```
+schemaforge generate
+schemaforge diff
+schemaforge plan
+schemaforge status
+schemaforge verify
+schemaforge squash
+
+schemaforge pull
+schemaforge import sql schema.sql
+
+schemaforge format
+schemaforge lint
+```

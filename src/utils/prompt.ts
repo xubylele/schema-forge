@@ -1,22 +1,12 @@
-/**
- * Interactive prompt utilities for confirming destructive operations.
- */
-
 import readline from 'node:readline';
-import type { Finding } from '../domain.js';
-import { EXIT_CODES } from './exitCodes.js';
-import { error, theme, warning } from './output.js';
+import type { Finding } from '../domain';
+import { EXIT_CODES } from './exitCodes';
+import { error, theme, warning } from './output';
 
-/**
- * Checks if running in a CI environment.
- */
 export function isCI(): boolean {
   return process.env.CI === 'true' || process.env.CONTINUOUS_INTEGRATION === 'true';
 }
 
-/**
- * Formats a list of findings into a human-readable summary.
- */
 function formatFindingsSummary(findings: Finding[]): string {
   const errors = findings.filter(f => f.severity === 'error');
   const warnings = findings.filter(f => f.severity === 'warning');
@@ -45,11 +35,6 @@ function formatFindingsSummary(findings: Finding[]): string {
   return lines.join('\n');
 }
 
-/**
- * Prompts user for yes/no confirmation from stdin.
- * Returns true for 'yes'/'y', false for 'no'/'n'.
- * Re-prompts on invalid input.
- */
 async function readConfirmation(input: NodeJS.ReadableStream | undefined = process.stdin, output: NodeJS.WritableStream | undefined = process.stdout): Promise<boolean> {
   const rl = readline.createInterface({
     input: input as NodeJS.ReadableStream,
@@ -78,47 +63,29 @@ async function readConfirmation(input: NodeJS.ReadableStream | undefined = proce
   });
 }
 
-/**
- * Displays a summary of risky operations and prompts for confirmation.
- * 
- * @param findings - Array of findings from safety check
- * @param input - Optional stdin stream (for testing)
- * @param output - Optional stdout stream (for testing)
- * @returns Promise<boolean> - true if user confirms, false if user declines or in CI
- * 
- * Behavior:
- * - In CI environment with destructive findings: sets exit code 3 and returns false immediately
- * - Interactive mode: shows summary and waits for yes/no confirmation
- * - Re-prompts on invalid input
- */
 export async function confirmDestructiveOps(
   findings: Finding[],
   input?: NodeJS.ReadableStream,
   output?: NodeJS.WritableStream
 ): Promise<boolean> {
-  // Filter to only error and warning level findings
   const riskyFindings = findings.filter(
     f => f.severity === 'error' || f.severity === 'warning'
   );
 
-  // If no risky operations, no need to prompt
   if (riskyFindings.length === 0) {
     return true;
   }
 
-  // CI environment check - must use explicit --force flag
   if (isCI()) {
     error('Cannot run interactive prompts in CI environment. Use --force flag to bypass safety checks.');
     process.exitCode = EXIT_CODES.CI_DESTRUCTIVE;
     return false;
   }
 
-  // Display summary
   console.log('');
   console.log(formatFindingsSummary(riskyFindings));
   console.log('');
 
-  // Read user confirmation
   const confirmed = await readConfirmation(input, output);
 
   if (!confirmed) {
@@ -128,11 +95,6 @@ export async function confirmDestructiveOps(
   return confirmed;
 }
 
-/**
- * Checks if findings contain destructive or warning-level operations.
- * @param findings - Array of findings from safety check
- * @returns true if any error or warning level findings exist
- */
 export function hasDestructiveFindings(findings: Finding[]): boolean {
   return findings.some(f => f.severity === 'error' || f.severity === 'warning');
 }

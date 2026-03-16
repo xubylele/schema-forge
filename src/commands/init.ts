@@ -41,7 +41,6 @@ export async function runInit(options?: InitOptions): Promise<void> {
   const root = getProjectRoot();
   const schemaForgeDir = getSchemaForgeDir(root);
 
-  // Check if schemaforge directory or any file exists
   if (await fileExists(schemaForgeDir)) {
     throw new Error('schemaforge/ directory already exists. Please remove it or run init in a different directory.');
   }
@@ -50,7 +49,6 @@ export async function runInit(options?: InitOptions): Promise<void> {
   const configPath = getConfigPath(root);
   const statePath = getStatePath(root);
 
-  // Check individual files just to be safe
   if (await fileExists(schemaFilePath)) {
     throw new Error(`${schemaFilePath} already exists`);
   }
@@ -65,10 +63,8 @@ export async function runInit(options?: InitOptions): Promise<void> {
 
   info('Initializing schema project...');
 
-  // Create schemaforge directory
   await ensureDir(schemaForgeDir);
 
-  // Create schema.sf file with exact content
   const schemaContent = `# SchemaForge schema definition
 # Run: schema-forge generate
 
@@ -115,7 +111,6 @@ table users {
       timestampDefault: 'now()'
     }
   };
-  // Supabase: use hyphen (timestamp-name.sql); Supabase CLI default is underscore
   if (provider === 'supabase') {
     config.migrationFileNameFormat = 'hyphen';
   }
