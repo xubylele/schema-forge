@@ -1,9 +1,6 @@
 import { promises as fs } from 'fs';
 import path from 'path';
 
-/**
- * Ensure a directory exists, creating it if necessary
- */
 export async function ensureDir(dirPath: string): Promise<void> {
   try {
     await fs.mkdir(dirPath, { recursive: true });
@@ -12,9 +9,6 @@ export async function ensureDir(dirPath: string): Promise<void> {
   }
 }
 
-/**
- * Check if a file exists
- */
 export async function fileExists(filePath: string): Promise<boolean> {
   try {
     await fs.access(filePath);
@@ -24,9 +18,6 @@ export async function fileExists(filePath: string): Promise<boolean> {
   }
 }
 
-/**
- * Read a text file with UTF-8 encoding
- */
 export async function readTextFile(filePath: string): Promise<string> {
   try {
     return await fs.readFile(filePath, 'utf-8');
@@ -35,12 +26,8 @@ export async function readTextFile(filePath: string): Promise<string> {
   }
 }
 
-/**
- * Write a text file with UTF-8 encoding
- */
 export async function writeTextFile(filePath: string, content: string): Promise<void> {
   try {
-    // Ensure parent directory exists
     const dir = path.dirname(filePath);
     await ensureDir(dir);
 
@@ -50,10 +37,6 @@ export async function writeTextFile(filePath: string, content: string): Promise<
   }
 }
 
-/**
- * Read a JSON file with UTF-8 encoding
- * Returns fallback value if file doesn't exist
- */
 export async function readJsonFile<T>(filePath: string, fallback: T): Promise<T> {
   try {
     const exists = await fileExists(filePath);
@@ -68,10 +51,6 @@ export async function readJsonFile<T>(filePath: string, fallback: T): Promise<T>
   }
 }
 
-/**
- * Write a JSON file with UTF-8 encoding
- * Pretty-prints with 2-space indentation
- */
 export async function writeJsonFile(filePath: string, data: any): Promise<void> {
   try {
     const content = JSON.stringify(data, null, 2);
@@ -81,9 +60,6 @@ export async function writeJsonFile(filePath: string, data: any): Promise<void> 
   }
 }
 
-/**
- * Find files matching a pattern recursively
- */
 export async function findFiles(dirPath: string, pattern: RegExp): Promise<string[]> {
   const results: string[] = [];
 

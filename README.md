@@ -14,6 +14,7 @@ A modern CLI tool for database schema management with a clean DSL and automatic 
 - **Postgres/Supabase** - Currently supports PostgreSQL and Supabase
 - **Constraint Diffing** - Detects UNIQUE and PRIMARY KEY changes with deterministic constraint names
 - **Live PostgreSQL Introspection** - Extract normalized schema directly from `information_schema`
+- **Policy (RLS) support** - Define Row Level Security policies in the DSL; invalid policies produce clear CLI errors during validation
 
 ## Installation
 
@@ -324,6 +325,7 @@ Live `--json` output returns a structured `DriftReport`:
 
 Validation checks include:
 
+- **Policy validation** – Each policy must reference an existing table, use a valid command (`select` / `insert` / `update` / `delete`), and have at least one of `using` or `with check`. Invalid policies cause validation to fail with a clear error (exit code 1).
 - Dropped tables (`DROP_TABLE`, error)
 - Dropped columns (`DROP_COLUMN`, error)
 - Column type changes (`ALTER_COLUMN_TYPE`, warning/error based on compatibility heuristics)
@@ -565,6 +567,26 @@ table table_name {
 - `nullable` - Allow NULL values (default when `not null` is not provided)
 - `default <value>` - Default value (e.g., `default now()`, `default false`, `default 0`)
 - `fk <table>.<column>` - Foreign key reference (e.g., `fk users.id`)
+
+### Policies (RLS)
+
+Row Level Security policies are declared at the top level (the table must be defined first). Each policy must have a `for` command and at least one of `using` or `with check`.
+
+```sql
+table users {
+  id uuid pk
+  email text unique
+}
+
+policy "Users can read themselves" on users
+for select
+using auth.uid() = id
+```
+
+- **First line:** `policy "<name>" on <table>`
+- **Continuation:** `for <command>` (required; one of `select`, `insert`, `update`, `delete`), optional `using <expr>`, optional `with check <expr>`
+
+Invalid policies (missing table, invalid command, or no expressions) fail `schema-forge validate` with a clear error message.
 
 ### Examples
 

@@ -7,7 +7,6 @@ import { success } from '../utils/output';
 const MIGRATION_FORMATS: MigrationFileNameFormat[] = ['hyphen', 'underscore'];
 
 export interface ConfigOptions {
-  /** Set migration file name format in config (hyphen | underscore). */
   migrationFormat?: MigrationFileNameFormat;
 }
 

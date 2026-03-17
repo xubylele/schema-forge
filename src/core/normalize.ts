@@ -1,6 +1,3 @@
-/**
- * Normalize identifiers for deterministic generated names.
- */
 export function normalizeIdent(input: string): string {
   return input
     .trim()

@@ -29,7 +29,6 @@ export interface GenerateOptions {
   name?: string;
   safe?: boolean;
   force?: boolean;
-  /** Override migration file name format: hyphen (timestamp-name.sql) or underscore (timestamp_name.sql). */
   migrationFormat?: MigrationFileNameFormat;
 }
 
@@ -39,7 +38,6 @@ interface GenerateConfig {
   outputDir: string;
   provider?: string;
   sql?: SqlConfig;
-  /** Migration file name: 'hyphen' (default) or 'underscore' (Supabase CLI style). */
   migrationFileNameFormat?: MigrationFileNameFormat;
 }
 
@@ -72,7 +70,6 @@ function resolveConfigPath(root: string, targetPath: string): string {
 }
 
 export async function runGenerate(options: GenerateOptions): Promise<void> {
-  // Validate flag exclusivity
   if (options.safe && options.force) {
     throw new Error('Cannot use --safe and --force flags together. Choose one:\n  --safe: Block destructive operations\n  --force: Bypass safety checks');
   }
@@ -118,12 +115,10 @@ export async function runGenerate(options: GenerateOptions): Promise<void> {
   const previousState = await loadState(statePath);
   const diff = await diffSchemas(previousState, schema);
 
-  // Handle --force flag: warn and bypass safety checks
   if (options.force) {
     forceWarning('Are you sure to use --force? This option will bypass safety checks for destructive operations.');
   }
 
-  // Check for destructive operations in safe mode
   if (options.safe && !options.force && diff.operations.length > 0) {
     const findings = await validateSchemaChanges(previousState, schema);
     const destructiveFindings = findings.filter(f => f.severity === 'error');
@@ -141,7 +136,6 @@ export async function runGenerate(options: GenerateOptions): Promise<void> {
     }
   }
 
-  // Interactive prompt for destructive operations when neither --safe nor --force is used
   if (!options.safe && !options.force && diff.operations.length > 0) {
     const findings = await validateSchemaChanges(previousState, schema);
     const riskyFindings = findings.filter(f => f.severity === 'error' || f.severity === 'warning');
@@ -150,7 +144,6 @@ export async function runGenerate(options: GenerateOptions): Promise<void> {
       const confirmed = await confirmDestructiveOps(findings);
 
       if (!confirmed) {
-        // Only set exit code 1 if not already set to 3 (CI destructive)
         if (process.exitCode !== EXIT_CODES.CI_DESTRUCTIVE) {
           process.exitCode = EXIT_CODES.VALIDATION_ERROR;
         }
