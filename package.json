@@ -1,6 +1,6 @@
 {
   "name": "@xubylele/schema-forge",
-  "version": "1.12.0",
+  "version": "1.12.1",
   "description": "Universal migration generator from schema DSL",
   "main": "dist/cli.js",
   "type": "commonjs",
@@ -61,7 +61,7 @@
     "@changesets/cli": "^2.30.0",
     "@types/node": "^25.2.3",
     "@types/pg": "^8.18.0",
-    "@xubylele/schema-forge-core": "^1.4.0",
+    "@xubylele/schema-forge-core": "^1.5.0",
     "testcontainers": "^11.8.1",
     "ts-node": "^10.9.2",
     "tsup": "^8.5.1",

@@ -14,7 +14,7 @@ A modern CLI tool for database schema management with a clean DSL and automatic 
 - **Postgres/Supabase** - Currently supports PostgreSQL and Supabase
 - **Constraint Diffing** - Detects UNIQUE and PRIMARY KEY changes with deterministic constraint names
 - **Live PostgreSQL Introspection** - Extract normalized schema directly from `information_schema`
-- **Policy (RLS) support** - Define Row Level Security policies in the DSL; invalid policies produce clear CLI errors during validation
+- **Policy (RLS) support** - Define Row Level Security policies in the DSL: `for select|insert|update|delete|all`, optional `to role1 role2` (e.g. `anon`, `authenticated`). Invalid policies produce clear CLI errors during validation. See [RLS policy patterns](https://github.com/xubylele/schema-forge-core/blob/main/docs/rls-policy-patterns.md) for user-owned rows, public read/authenticated write, and multi-tenant examples.
 
 ## Installation
 
@@ -325,7 +325,7 @@ Live `--json` output returns a structured `DriftReport`:
 
 Validation checks include:
 
-- **Policy validation** – Each policy must reference an existing table, use a valid command (`select` / `insert` / `update` / `delete`), and have at least one of `using` or `with check`. Invalid policies cause validation to fail with a clear error (exit code 1).
+- **Policy validation** – Each policy must reference an existing table, use a valid command (`select` / `insert` / `update` / `delete` / `all`), and have at least one of `using` or `with check`. Invalid policies cause validation to fail with a clear error (exit code 1).
 - Dropped tables (`DROP_TABLE`, error)
 - Dropped columns (`DROP_COLUMN`, error)
 - Column type changes (`ALTER_COLUMN_TYPE`, warning/error based on compatibility heuristics)
@@ -584,9 +584,22 @@ using auth.uid() = id
 ```
 
 - **First line:** `policy "<name>" on <table>`
-- **Continuation:** `for <command>` (required; one of `select`, `insert`, `update`, `delete`), optional `using <expr>`, optional `with check <expr>`
+- **Continuation:** `for <command>` (required): `select`, `insert`, `update`, `delete`, or `all` (applies to all commands). Optional `to role1 role2` (e.g. `to anon authenticated`). Optional `using <expr>` and `with check <expr>`.
 
-Invalid policies (missing table, invalid command, or no expressions) fail `schema-forge validate` with a clear error message.
+Example with `for all` and `to`:
+
+```sql
+policy "Own rows" on profiles
+for all
+using auth.uid() = id
+with check auth.uid() = id
+
+policy "Public read" on items
+for select to anon authenticated
+using true
+```
+
+Invalid policies (missing table, invalid command, or no expressions) fail `schema-forge validate` with a clear error message. For common patterns (user-owned rows, public read / authenticated write, multi-tenant), see [RLS policy patterns](https://github.com/xubylele/schema-forge-core/blob/main/docs/rls-policy-patterns.md) in the core package.
 
 ### Examples
 
