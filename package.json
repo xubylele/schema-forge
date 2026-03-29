@@ -9,12 +9,12 @@
   },
   "exports": {
     ".": {
-      "require": "dist/cli.js",
-      "types": "dist/cli.d.ts"
+      "require": "./dist/cli.js",
+      "types": "./dist/cli.d.ts"
     },
     "./api": {
-      "require": "dist/api.js",
-      "types": "dist/api.d.ts"
+      "require": "./dist/api.js",
+      "types": "./dist/api.d.ts"
     }
   },
   "scripts": {
