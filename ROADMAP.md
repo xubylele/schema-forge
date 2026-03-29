@@ -9,7 +9,7 @@
 
 ---
 
-# Already Shipped (Completed)
+## Already Shipped (Completed)
 
 These phases remain as the current baseline.
 
@@ -36,15 +36,15 @@ These phases remain as the current baseline.
 
 ### In Progress
 
-* Website (docs, login, signup, CLI login page), playground (browser core)
-* Schema Forge Cloud (auth, device login for CLI)
-* GitHub Action (validate, doctor, diff, PR comment preview)
+* Website: docs + playground ✅; login/signup + CLI login page 📌 Planned (after free-tier milestones)
+* Schema Forge Cloud: auth + device login for CLI ✅
+* GitHub Action: validate/doctor/diff + PR comment preview ✅
 
 ---
 
-# Phase 1 — PostgreSQL Schema Coverage
+## Phase 1 — PostgreSQL Schema Coverage
 
-## Week 1 — Policies (RLS)
+## Week 1 — Policies (RLS) ✅
 
 ### Ticket: DSL support for policies
 
@@ -52,14 +52,14 @@ Goal: Add PostgreSQL RLS policy support to the DSL.
 
 Tasks:
 
-* Add PolicyNode to AST
-* Extend parser
-* Add diff detection
-* Add SQL generator
+* ✅ Add PolicyNode to AST
+* ✅ Extend parser
+* ✅ Add diff detection
+* ✅ Add SQL generator
 
 Example DSL
 
-```
+```sql
 policy "Users can read themselves" on users
 for select
 using auth.uid() = id
@@ -71,6 +71,8 @@ using auth.uid() = id
 
 ### Ticket: DSL support for views
 
+Status: ⏳ Pending
+
 Tasks:
 
 * Add ViewNode to AST
@@ -80,15 +82,17 @@ Tasks:
 
 ### Ticket: DSL support for indexes
 
+Status: ⏳ Pending
+
 Support:
 
 * unique
 * partial
 * expression indexes
 
-Example:
+Example DSL
 
-```
+```sql
 index users_email_idx on users(email)
 ```
 
@@ -98,6 +102,8 @@ index users_email_idx on users(email)
 
 ### Ticket: DSL support for functions
 
+Status: ⏳ Pending
+
 Tasks:
 
 * AST node
@@ -106,9 +112,9 @@ Tasks:
 * SQL generation
 * diff detection
 
-Example:
+Example DSL
 
-```
+```sql
 function get_user_posts(user_id uuid)
 returns setof posts
 language sql
@@ -123,9 +129,11 @@ $$
 
 ### Ticket: DSL support for triggers
 
-Example:
+Status: ⏳ Pending
 
-```
+Example DSL
+
+```sql
 trigger update_timestamp
 before update on users
 for each row
@@ -134,7 +142,7 @@ execute function update_updated_at()
 
 ---
 
-# Phase 2 — Migration Engine Improvements
+## Phase 2 — Migration Engine Improvements
 
 ## Week 5 — Migration Planner
 
@@ -142,13 +150,13 @@ execute function update_updated_at()
 
 Command:
 
-```
+```bash
 schemaforge plan
 ```
 
 Output example:
 
-```
+```bash
 + create table posts
 + add column avatar_url
 ~ modify column email type
@@ -156,9 +164,11 @@ Output example:
 
 ---
 
-## Week 6 — Migration Safety Checks
+## Week 6 — Migration Safety Checks ✅
 
 ### Ticket: Detect destructive migrations
+
+Status: ✅ Completed
 
 Detect:
 
@@ -168,23 +178,29 @@ Detect:
 
 CLI should warn before execution.
 
+Delivered in current CLI via destructive-change detection, `--safe` / `--force`, and CI exit-code behavior.
+
 ---
 
 ## Week 7 — Migration Status + Verification
 
 ### Ticket: Implement status command
 
+Status: ⏳ Pending
+
 Command:
 
-```
+```bash
 schemaforge status
 ```
 
 ### Ticket: Migration verification
 
+Status: ⏳ Pending
+
 Command:
 
-```
+```bash
 schemaforge verify
 ```
 
@@ -200,37 +216,43 @@ Checks:
 
 ### Ticket: Generate down migrations automatically
 
+Status: ⏳ Pending
+
 Files generated:
 
-```
+```bash
 up.sql
 down.sql
 ```
 
 ---
 
-# Phase 3 — SQL / Database Import
+## Phase 3 — SQL / Database Import
 
-## Week 9 — SQL → Schema Forge Import
+## Week 9 — SQL → Schema Forge Import 🟡
 
 ### Ticket: SQL parser for schema import
+
+Status: ✅ Completed (baseline import flow)
 
 Goal:
 Allow importing an existing SQL schema into Schema Forge DSL.
 
 Command:
 
-```
+```bash
 schemaforge import sql schema.sql
 ```
 
 Output:
 
-```
+```bash
 schemaforge/schema.sf
 ```
 
 ### Ticket: SQL → AST converter
+
+Status: 🟡 Partially completed (baseline DDL support shipped; extended coverage continues in later phases)
 
 Convert SQL constructs into Schema Forge AST.
 
@@ -245,13 +267,15 @@ Support:
 
 ### Ticket: AST → DSL writer
 
+Status: ✅ Completed (schema output generation shipped)
+
 Convert parsed AST to `.sf` DSL file.
 
 Example conversion
 
 SQL
 
-```
+```sql
 CREATE TABLE users (
  id uuid primary key,
  email text unique
@@ -260,25 +284,25 @@ CREATE TABLE users (
 
 DSL
 
-```
+```sql
 table users {
-
  id uuid pk
  email text unique
-
 }
 ```
 
 ---
 
-## Week 10 — Live Database Introspection
+## Week 10 — Live Database Introspection ✅
 
 ### Ticket: Database schema introspector
 
-Command:
+Status: ✅ Completed
 
-```
-schemaforge pull
+Command (current):
+
+```bash
+schemaforge introspect
 ```
 
 Behavior:
@@ -294,17 +318,19 @@ Sources:
 
 ---
 
-# Phase 4 — Advanced Diff Intelligence
+## Phase 4 — Advanced Diff Intelligence
 
 ## Week 11 — Rename Detection
 
 ### Ticket: Column rename detection
 
+Status: ⏳ Pending
+
 Detect renames instead of drop/add operations.
 
 Example:
 
-```
+```bash
 email → user_email
 ```
 
@@ -314,9 +340,11 @@ email → user_email
 
 ### Ticket: Migration squash command
 
+Status: ⏳ Pending
+
 Command:
 
-```
+```bash
 schemaforge squash
 ```
 
@@ -324,24 +352,28 @@ Combine many migrations into a baseline.
 
 ---
 
-# Phase 5 — SQL Import Improvements
+## Phase 5 — SQL Import Improvements
 
 ## Week 13 — Extended SQL Import
 
 ### Ticket: Import indexes from SQL
 
+Status: ⏳ Pending
+
 Support:
 
-```
+```sql
 CREATE INDEX
 CREATE UNIQUE INDEX
 ```
 
 ### Ticket: Import foreign keys
 
+Status: ⏳ Pending
+
 Support:
 
-```
+```sql
 REFERENCES
 ON DELETE
 ON UPDATE
@@ -349,27 +381,33 @@ ON UPDATE
 
 ### Ticket: Import views
 
+Status: ⏳ Pending
+
 Parse:
 
-```
+```sql
 CREATE VIEW
 ```
 
 ### Ticket: Import functions
 
+Status: ⏳ Pending
+
 Parse:
 
-```
+```sql
 CREATE FUNCTION
 ```
 
 ---
 
-# Phase 6 — Provider Architecture
+## Phase 6 — Provider Architecture
 
 ## Week 14 — Provider abstraction
 
 ### Ticket: Define provider interface
+
+Status: 🟡 Partially completed (provider concept exists, full abstraction still pending)
 
 Example:
 
@@ -387,45 +425,55 @@ interface Provider {
 
 ### Ticket: Extract PostgreSQL provider
 
+Status: ⏳ Pending
+
 Move SQL generation to a dedicated provider package.
 
-```
-@schema-forge/provider-postgres
+```ts
+import * from '@schema-forge/provider-postgres'
 ```
 
 ---
 
-# Phase 7 — Multi‑Database Support
+## Phase 7 — Multi‑Database Support
 
 ## Week 15–17 — MySQL Provider
 
 Tickets:
 
-* MySQL SQL generator
-* MySQL schema introspector
-* MySQL diff compatibility
+* ⏳ MySQL SQL generator
+* ⏳ MySQL schema introspector
+* ⏳ MySQL diff compatibility
 
 ---
 
 ## Week 18 — SQLite Provider
 
+Status: ⏳ Pending
+
 Implement SQLite provider for lightweight development environments.
 
 ---
 
-# Final CLI Surface
+## Final CLI Surface
 
-```
+```bash
 schemaforge generate
 schemaforge diff
+schemaforge validate
+schemaforge doctor
+schemaforge introspect
+schemaforge import <path>
+
+# Planned
 schemaforge plan
 schemaforge status
 schemaforge verify
 schemaforge squash
-
 schemaforge pull
-schemaforge import sql schema.sql
-
 schemaforge format
 schemaforge lint
+
+# Legacy roadmap notation
+schemaforge import sql schema.sql
 ```
