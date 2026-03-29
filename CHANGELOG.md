@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.12.2
+
+### Patch Changes
+
+- 58c4f44: 📝 docs: update roadmap with completed tasks and status for upcoming features
+
 ## 1.12.1
 
 ### Patch Changes
