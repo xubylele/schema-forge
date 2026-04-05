@@ -10,12 +10,26 @@ import type { InitOptions } from './commands/init';
 import { runInit } from './commands/init';
 import type { IntrospectOptions } from './commands/introspect';
 import { runIntrospect } from './commands/introspect';
+import type { PlanOptions } from './commands/plan';
+import { runPlan } from './commands/plan';
+import type { PreviewOptions } from './commands/preview';
+import { runPreview } from './commands/preview';
 import type { ValidateOptions } from './commands/validate';
 import { runValidate } from './commands/validate';
 import { EXIT_CODES } from './utils/exitCodes';
 
 export { EXIT_CODES };
-export type { DiffOptions, DoctorOptions, GenerateOptions, ImportOptions, InitOptions, IntrospectOptions, ValidateOptions };
+export type {
+  DiffOptions,
+  DoctorOptions,
+  GenerateOptions,
+  ImportOptions,
+  InitOptions,
+  IntrospectOptions,
+  PlanOptions,
+  PreviewOptions,
+  ValidateOptions
+};
 
 export interface RunResult {
   exitCode: number;
@@ -55,6 +69,14 @@ export async function doctor(options: DoctorOptions = {}): Promise<RunResult> {
 
 export async function validate(options: ValidateOptions = {}): Promise<RunResult> {
   return runWithResult(() => runValidate(options));
+}
+
+export async function plan(options: PlanOptions = {}): Promise<RunResult> {
+  return runWithResult(() => runPlan(options));
+}
+
+export async function preview(options: PreviewOptions = {}): Promise<RunResult> {
+  return runWithResult(() => runPreview(options));
 }
 
 export async function introspect(options: IntrospectOptions = {}): Promise<RunResult> {

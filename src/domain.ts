@@ -2,6 +2,8 @@ import type {
   ApplySqlOpsResult,
   DriftReport,
   Finding,
+  MigrationPlanEntry,
+  MigrationPlanResult,
   MigrationSqlInput,
   ParseResult,
   PostgresIntrospectionOptions,
@@ -48,6 +50,16 @@ export async function diffSchemas(previousState: StateFile, currentSchema: Datab
 export async function generateSql(diff: DiffResult, provider: Provider, config?: SqlConfig): Promise<string> {
   const core = await loadCore();
   return core.generateSql(diff, provider, config);
+}
+
+export async function buildMigrationPlan(diff: DiffResult): Promise<MigrationPlanResult> {
+  const core = await loadCore();
+  return core.buildMigrationPlan(diff);
+}
+
+export async function formatMigrationPlanLines(entries: MigrationPlanEntry[]): Promise<string[]> {
+  const core = await loadCore();
+  return core.formatMigrationPlanLines(entries);
 }
 
 export async function schemaToState(schema: DatabaseSchema): Promise<StateFile> {
@@ -119,6 +131,8 @@ export type {
   ApplySqlOpsResult,
   DriftReport,
   Finding,
+  MigrationPlanEntry,
+  MigrationPlanResult,
   MigrationSqlInput,
   ParseResult,
   PostgresIntrospectionOptions,
