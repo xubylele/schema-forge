@@ -15,6 +15,8 @@ A modern CLI tool for database schema management with a clean DSL and automatic 
 - **Constraint Diffing** - Detects UNIQUE and PRIMARY KEY changes with deterministic constraint names
 - **Live PostgreSQL Introspection** - Extract normalized schema directly from `information_schema`
 - **Policy (RLS) support** - Define Row Level Security policies in the DSL: `for select|insert|update|delete|all`, optional `to role1 role2` (e.g. `anon`, `authenticated`). Invalid policies produce clear CLI errors during validation. See [RLS policy patterns](https://github.com/xubylele/schema-forge-core/blob/main/docs/rls-policy-patterns.md) for user-owned rows, public read/authenticated write, and multi-tenant examples.
+- **Index support** - Define regular, unique, expression, and partial indexes directly in DSL and generate deterministic create/drop operations.
+- **View support** - Define SQL views in DSL and generate create/replace/drop view operations.
 
 ## Installation
 
@@ -41,7 +43,7 @@ const result = await generate({ name: 'MyMigration' });
 if (result.exitCode !== EXIT_CODES.SUCCESS) process.exit(result.exitCode);
 ```
 
-**Exports:** `init`, `generate`, `diff`, `doctor`, `validate`, `introspect`, `importSchema` (each returns `Promise<RunResult>`), `RunResult` (`{ exitCode: number }`), `EXIT_CODES`, and option types (`InitOptions`, `GenerateOptions`, `DiffOptions`, etc.). Entrypoint: `@xubylele/schema-forge/api`. Exit code semantics: [docs/exit-codes.json](docs/exit-codes.json).
+**Exports:** `init`, `generate`, `diff`, `plan`, `preview`, `doctor`, `validate`, `introspect`, `importSchema` (each returns `Promise<RunResult>`), `RunResult` (`{ exitCode: number }`), `EXIT_CODES`, and option types (`InitOptions`, `GenerateOptions`, `DiffOptions`, etc.). Entrypoint: `@xubylele/schema-forge/api`. Exit code semantics: [docs/exit-codes.json](docs/exit-codes.json).
 
 ## Development
 
@@ -252,6 +254,37 @@ schema-forge diff [--safe] [--force]
 Shows what SQL would be generated if you ran `generate`. Useful for previewing changes. Safety behavior is the same as `generate` command. In CI environments, exits with code 3 if destructive operations are detected unless `--force` is used. See [CI Behavior](#ci-behavior) for more details.
 
 When `--url` (or `DATABASE_URL`) is provided, `diff` compares your target DSL schema against the live PostgreSQL schema introspected from `information_schema`.
+
+### `schema-forge plan`
+
+Preview migration operations as human-readable plan lines.
+
+```bash
+schema-forge plan [--safe] [--force]
+```
+
+**Options:**
+
+- `--safe` - Block execution if destructive operations are detected (exits with error)
+- `--force` - Bypass safety checks and proceed with destructive operations (shows warning)
+- `--url` - PostgreSQL connection URL for live database plan (fallback: `DATABASE_URL`)
+- `--schema` - Comma-separated schema names to introspect (default: `public`)
+
+Example output:
+
+```text
++ create table users
++ create index idx_users_email on users
+~ replace view active_users
+```
+
+### `schema-forge preview`
+
+Alias for `schema-forge plan`.
+
+```bash
+schema-forge preview [--safe] [--force]
+```
 
 ### `schema-forge import`
 
@@ -601,6 +634,25 @@ using true
 
 Invalid policies (missing table, invalid command, or no expressions) fail `schema-forge validate` with a clear error message. For common patterns (user-owned rows, public read / authenticated write, multi-tenant), see [RLS policy patterns](https://github.com/xubylele/schema-forge-core/blob/main/docs/rls-policy-patterns.md) in the core package.
 
+### Indexes
+
+Indexes are declared at the top level and target an existing table.
+
+```sql
+index idx_users_email on users(email)
+index idx_users_lower_email on users((lower(email)))
+index idx_active_users on users(id) where is_active = true
+index unique idx_users_handle on users(handle)
+```
+
+### Views
+
+Views are declared at the top level with a SQL query body.
+
+```sql
+view active_users as select id, email from users where is_active = true
+```
+
 ### Examples
 
 #### Simple table
@@ -692,10 +744,11 @@ A typical development workflow looks like this:
 
 1. **Initialize** - `schema-forge init` or `schema-forge init supabase` (one time)
 2. **Edit schema** - Modify `schemaforge/schema.sf`
-3. **Preview changes** - `schema-forge diff` (optional)
-4. **Generate migration** - `schema-forge generate --name "description"`
-5. **Apply migration** - Run the generated SQL against your database
-6. **Repeat** - Continue editing and generating migrations as needed
+3. **Preview operations** - `schema-forge plan` (optional)
+4. **Preview SQL** - `schema-forge diff` (optional)
+5. **Generate migration** - `schema-forge generate --name "description"`
+6. **Apply migration** - Run the generated SQL against your database
+7. **Repeat** - Continue editing and generating migrations as needed
 
 ## Tips
 
