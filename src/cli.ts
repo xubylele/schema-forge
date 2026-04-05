@@ -8,6 +8,8 @@ import { runGenerate } from './commands/generate';
 import { runImport } from './commands/import';
 import { runInit } from './commands/init';
 import { runIntrospect } from './commands/introspect';
+import { runPlan } from './commands/plan';
+import { runPreview } from './commands/preview';
 import { runValidate } from './commands/validate';
 import { isSchemaValidationError } from './domain';
 import { EXIT_CODES } from './utils/exitCodes';
@@ -91,6 +93,36 @@ program
       const globalOptions = program.opts();
       validateFlagExclusivity(globalOptions);
       await runDiff({ ...options, ...globalOptions });
+    } catch (error) {
+      await handleError(error);
+    }
+  });
+
+program
+  .command('plan')
+  .description('Preview migration operations as a human-readable plan. In CI environments (CI=true), exits with code 3 if destructive operations are detected unless --force is used.')
+  .option('--url <string>', 'PostgreSQL connection URL for live plan (defaults to DATABASE_URL)')
+  .option('--schema <list>', 'Comma-separated schema names to introspect (default: public)')
+  .action(async (options) => {
+    try {
+      const globalOptions = program.opts();
+      validateFlagExclusivity(globalOptions);
+      await runPlan({ ...options, ...globalOptions });
+    } catch (error) {
+      await handleError(error);
+    }
+  });
+
+program
+  .command('preview')
+  .description('Preview migration operations (alias of plan). In CI environments (CI=true), exits with code 3 if destructive operations are detected unless --force is used.')
+  .option('--url <string>', 'PostgreSQL connection URL for live preview (defaults to DATABASE_URL)')
+  .option('--schema <list>', 'Comma-separated schema names to introspect (default: public)')
+  .action(async (options) => {
+    try {
+      const globalOptions = program.opts();
+      validateFlagExclusivity(globalOptions);
+      await runPreview({ ...options, ...globalOptions });
     } catch (error) {
       await handleError(error);
     }
@@ -185,7 +217,7 @@ async function main(): Promise<void> {
   if (shouldCheckForUpdate(argv)) {
     import('update-notifier')
       .then((m) => m.default({ pkg, shouldNotifyInNpmScript: false }).notify())
-      .catch(() => {});
+      .catch(() => { });
   }
 
   program.parse(process.argv);
